@@ -1,5 +1,6 @@
 package io.takari.incrementalbuild.maven.internal;
 
+import static io.takari.incrementalbuild.spi.DefaultBuildContext.CONFIG_ESCALATED;
 import io.takari.incrementalbuild.maven.internal.Digesters.UnsupportedParameterTypeException;
 
 import java.io.IOException;
@@ -9,6 +10,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -59,10 +61,13 @@ public class MojoConfigurationDigester {
       ExpressionEvaluator evaluator = new PluginParameterExpressionEvaluator(session, execution);
       for (PlexusConfiguration child : configuration.getChildren()) {
         String name = fromXML(child.getName());
+        if (CONFIG_ESCALATED.equals(name)) {
+          result.put(name, child.getValue());
+        }
         try {
           Field field = getField(execution.getMojoDescriptor().getImplementationClass(), name);
           if (field != null) {
-            String expression = child.getValue(null);
+            String expression = child.getValue();
             if (expression == null) {
               expression = child.getAttribute("default-value");
             }
@@ -92,6 +97,18 @@ public class MojoConfigurationDigester {
         throw new IllegalArgumentException(sb.toString());
       }
     }
+
+    Properties projectProperties = project.getProperties();
+    if (!result.containsKey(CONFIG_ESCALATED) && projectProperties.containsKey(CONFIG_ESCALATED)) {
+      result.put(CONFIG_ESCALATED, projectProperties.getProperty(CONFIG_ESCALATED));
+    }
+
+    @SuppressWarnings("deprecation")
+    Properties sessionProperties = session.getExecutionProperties();
+    if (!result.containsKey(CONFIG_ESCALATED) && sessionProperties.containsKey(CONFIG_ESCALATED)) {
+      result.put(CONFIG_ESCALATED, sessionProperties.getProperty(CONFIG_ESCALATED));
+    }
+
     return result;
   }
 

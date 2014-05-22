@@ -2,6 +2,7 @@ package io.takari.incremental.test.maven;
 
 import io.takari.incrementalbuild.maven.internal.MojoConfigurationDigester;
 import io.takari.incrementalbuild.maven.testing.IncrementalBuildRule;
+import io.takari.incrementalbuild.spi.DefaultBuildContext;
 
 import java.io.File;
 import java.io.Serializable;
@@ -150,5 +151,12 @@ public class MojoConfigurationDigesterTest {
   public void testArtifactCollection() throws Exception {
     Map<String, Serializable> digest = digest(newParameter("dependencies", "${project.artifacts}"));
     Assert.assertNotNull(digest.get("mojo.parameter.dependencies"));
+  }
+
+  @Test
+  public void testExplicitBuildEscalation() throws Exception {
+    Map<String, Serializable> digest =
+        digest(newParameter(DefaultBuildContext.CONFIG_ESCALATED, "true"));
+    Assert.assertEquals("true", digest.get(DefaultBuildContext.CONFIG_ESCALATED));
   }
 }

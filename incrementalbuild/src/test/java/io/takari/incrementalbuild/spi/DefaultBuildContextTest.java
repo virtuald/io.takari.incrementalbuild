@@ -15,6 +15,7 @@ import java.net.URLClassLoader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -976,5 +977,28 @@ public class DefaultBuildContextTest {
     metadata = context.registerInput(inputFile);
     Assert.assertTrue(context.isProcessingRequired());
 
+  }
+
+  @Test
+  public void testExplicitBuildEscalation() throws Exception {
+    Map<String, Serializable> config = new HashMap<String, Serializable>();
+    config.put("test", "value");
+    DefaultBuildContext<?> context = newBuildContext(config);
+    context.commit();
+
+    config.put(DefaultBuildContext.CONFIG_ESCALATED, "true");
+    context = newBuildContext(config);
+    Assert.assertTrue(context.isEscalated());
+    context.commit();
+
+    config.put(DefaultBuildContext.CONFIG_ESCALATED, "false");
+    context = newBuildContext(config);
+    Assert.assertFalse(context.isEscalated());
+    context.commit();
+
+    config.remove(DefaultBuildContext.CONFIG_ESCALATED);
+    context = newBuildContext(config);
+    Assert.assertFalse(context.isEscalated());
+    context.commit();
   }
 }

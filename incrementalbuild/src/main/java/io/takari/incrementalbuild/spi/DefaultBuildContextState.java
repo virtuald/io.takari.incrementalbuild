@@ -79,8 +79,11 @@ public class DefaultBuildContextState implements Serializable {
 
   public static DefaultBuildContextState withConfiguration(Map<String, Serializable> configuration) {
     HashMap<String, Serializable> copy = new HashMap<String, Serializable>(configuration);
+    // remove pseudo parameters, if any
+    copy.remove(DefaultBuildContext.CONFIG_ESCALATED);
     // configuration marker used to distinguish between empty and new state
     copy.put("incremental", Boolean.TRUE);
+
     return new DefaultBuildContextState(Collections.<String, Serializable>unmodifiableMap(copy) // configuration
         , new HashMap<Object, ResourceHolder<?>>() // inputs
         , new HashMap<File, ResourceHolder<File>>() // outputs

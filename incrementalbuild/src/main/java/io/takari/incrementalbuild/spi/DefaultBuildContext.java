@@ -28,6 +28,13 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     implements
       BuildContext {
 
+  /**
+   * Pseudo configuration parameter, if set to {@code true}, build context instance will operate in
+   * escalated mode even if other configuration parameters have not changed. If set to {@code false}
+   * or not present, build context will use normal escalation rules.
+   */
+  public static final String CONFIG_ESCALATED = "io.takari.incrementalbuild.escalated";
+
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
   protected final File stateFile;
@@ -74,7 +81,8 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
     this.oldState = DefaultBuildContextState.loadFrom(stateFile);
 
-    this.escalated = getEscalated();
+    this.escalated =
+        Boolean.valueOf((String) configuration.get(CONFIG_ESCALATED)) || getEscalated();
 
     if (escalated) {
       if (!stateFile.canRead()) {
