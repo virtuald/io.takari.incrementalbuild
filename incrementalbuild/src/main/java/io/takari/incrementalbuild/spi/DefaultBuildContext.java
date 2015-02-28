@@ -350,6 +350,11 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     workspace.deleteFile(outputFile);
   }
 
+  public void deleteOutput(File outputFile) throws IOException {
+    // XXX totally bogus. need to maintain state, things like deleted outputs and such
+    workspace.deleteFile(outputFile);
+  }
+
   private static <K, V> void put(Map<K, Collection<V>> multimap, K key, V value) {
     Collection<V> values = multimap.get(key);
     if (values == null) {
