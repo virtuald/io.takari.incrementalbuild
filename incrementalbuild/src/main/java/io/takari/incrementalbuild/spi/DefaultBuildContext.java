@@ -196,7 +196,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
       // clean this build's metadata to accommodate reprocessing
       state.inputIncludedInputs.remove(inputResource);
-      Collection<File> outputs = state.inputOutputs.remove(inputResource);
+      Collection<File> outputs = state.resourceOutputs.remove(inputResource);
       if (outputs != null) {
         for (File outputFile : outputs) {
           Collection<Object> others = state.outputInputs.get(outputFile);
@@ -332,14 +332,14 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       return deleted;
     }
 
-    Collection<File> oldAssociatedOutputs = oldState.inputOutputs.get(inputResource);
+    Collection<File> oldAssociatedOutputs = oldState.resourceOutputs.get(inputResource);
 
     if (oldAssociatedOutputs == null || oldAssociatedOutputs.isEmpty()) {
       // input didn't have associated outputs in the previous build, nothing to delete
       return deleted;
     }
 
-    Collection<File> associatedOutputs = state.inputOutputs.get(inputResource);
+    Collection<File> associatedOutputs = state.resourceOutputs.get(inputResource);
     for (File oldOutputFile : oldAssociatedOutputs) {
       if (associatedOutputs == null || !associatedOutputs.contains(oldOutputFile)) {
         deleteStaleOutput(oldOutputFile);
@@ -423,7 +423,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
    * not able to determine what outputs are stale/orphaned and what outputs are still relevant.
    */
   public void markOutputsAsUptodate() {
-    if (isProcessingRequired() || !oldState.inputOutputs.isEmpty()) {
+    if (isProcessingRequired() || !oldState.resourceOutputs.isEmpty()) {
       throw new IllegalStateException();
     }
 
@@ -493,7 +493,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
         }
       }
 
-      Collection<File> outputFiles = oldState.inputOutputs.get(inputResource);
+      Collection<File> outputFiles = oldState.resourceOutputs.get(inputResource);
       if (outputFiles != null) {
         for (File outputFile : outputFiles) {
           ResourceHolder<File> outputState = oldState.outputs.get(outputFile);
@@ -733,16 +733,19 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   // association management
 
   public void associate(DefaultInputMetadata<?> input, DefaultOutput output) {
-    Object inputResource = input.getResource();
+    associateOutput(input.getResource(), output);
+  }
+
+  public void associateOutput(Object resource, DefaultOutput output) {
     File outputFile = output.getResource();
-    if (!processedInputs.containsKey(inputResource)) {
-      if (!contains(oldState.inputOutputs.get(inputResource), outputFile)
-          || !contains(oldState.outputInputs.get(outputFile), inputResource)) {
+    if (!processedInputs.containsKey(resource) && !processedOutputs.containsKey(resource)) {
+      if (!contains(oldState.resourceOutputs.get(resource), outputFile)
+          || !contains(oldState.outputInputs.get(outputFile), resource)) {
         throw new IllegalArgumentException();
       }
     }
-    put(state.inputOutputs, inputResource, outputFile);
-    put(state.outputInputs, outputFile, inputResource);
+    put(state.resourceOutputs, resource, outputFile);
+    put(state.outputInputs, outputFile, resource);
   }
 
   private static <T> boolean contains(Collection<T> collection, T member) {
@@ -750,7 +753,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   private boolean isAssociatedOutput(DefaultInput<?> input, File outputFile) {
-    Collection<File> outputs = state.inputOutputs.get(input.getResource());
+    Collection<File> outputs = state.resourceOutputs.get(input.getResource());
     return outputs != null && outputs.contains(outputFile);
   }
 
@@ -773,8 +776,8 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return workspace.newOutputStream(output.getResource());
   }
 
-  public Iterable<DefaultOutput> getAssociatedOutputs(File inputFile) {
-    Collection<File> outputFiles = state.inputOutputs.get(inputFile);
+  public Iterable<DefaultOutput> getAssociatedOutputs(File resource) {
+    Collection<File> outputFiles = state.resourceOutputs.get(resource);
     if (outputFiles == null || outputFiles.isEmpty()) {
       return Collections.emptyList();
     }
@@ -786,8 +789,8 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   Iterable<DefaultOutputMetadata> getAssociatedOutputs(DefaultBuildContextState state,
-      Object inputResource) {
-    Collection<File> outputFiles = state.inputOutputs.get(inputResource);
+      Object resource) {
+    Collection<File> outputFiles = state.resourceOutputs.get(resource);
     if (outputFiles == null || outputFiles.isEmpty()) {
       return Collections.emptyList();
     }
@@ -968,7 +971,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       }
       if (!processedInputs.containsKey(inputResource)) {
         // copy associated outputs
-        Collection<File> associatedOutputs = oldState.inputOutputs.get(inputResource);
+        Collection<File> associatedOutputs = oldState.resourceOutputs.get(inputResource);
         if (associatedOutputs != null) {
           for (File outputFile : associatedOutputs) {
             if (!processedOutputs.containsKey(outputFile)) {
@@ -1120,7 +1123,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   protected void carryOverOutput(Object inputResource, File outputFile) {
     carryOverOutput(outputFile);
 
-    put(state.inputOutputs, inputResource, outputFile);
+    put(state.resourceOutputs, inputResource, outputFile);
     put(state.outputInputs, outputFile, inputResource);
   }
 
@@ -1172,4 +1175,14 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   protected abstract BuildFailureException newBuildFailureException(String message);
+
+  public Resource<File> getResource(File resourceFile) {
+    resourceFile = normalize(resourceFile);
+    @SuppressWarnings("unchecked")
+    Resource<File> resource = (Resource<File>) processedInputs.get(resourceFile);
+    if (resource == null) {
+      resource = processedOutputs.get(resourceFile);
+    }
+    return resource;
+  }
 }

@@ -2,6 +2,7 @@ package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext;
 import io.takari.incrementalbuild.BuildContext.InputMetadata;
+import io.takari.incrementalbuild.BuildContext.Output;
 import io.takari.incrementalbuild.BuildContext.Severity;
 
 import java.io.File;
@@ -66,5 +67,21 @@ public class DefaultOutput extends DefaultOutputMetadata implements BuildContext
   @Override
   public void addMessage(int line, int column, String message, Severity severity, Throwable cause) {
     context.addMessage(getResource(), line, column, message, severity, cause);
+  }
+
+  @Override
+  public DefaultOutput associateOutput(Output<File> output) {
+    if (!(output instanceof DefaultOutput)) {
+      throw new IllegalArgumentException();
+    }
+    context.associateOutput(file, (DefaultOutput) output);
+    return (DefaultOutput) output;
+  }
+
+  @Override
+  public DefaultOutput associateOutput(File outputFile) {
+    DefaultOutput output = context.processOutput(outputFile);
+    context.associateOutput(file, output);
+    return output;
   }
 }

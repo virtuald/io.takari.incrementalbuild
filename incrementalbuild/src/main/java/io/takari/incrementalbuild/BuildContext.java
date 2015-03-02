@@ -57,6 +57,11 @@ public interface BuildContext {
      * associated with the key during this build.
      */
     public <V extends Serializable> V getAttribute(String key, Class<V> clazz);
+
+    /**
+     * Returns outputs associated with this input during the previous build.
+     */
+    public Iterable<? extends OutputMetadata<File>> getAssociatedOutputs();
   }
 
   public static interface Resource<T> extends ResourceMetadata<T> {
@@ -67,6 +72,17 @@ public interface BuildContext {
     public <V extends Serializable> Serializable setAttribute(String key, V value);
 
     public void addMessage(int line, int column, String message, Severity severity, Throwable cause);
+
+    public Output<File> associateOutput(Output<File> output);
+
+    /**
+     * Convenience method, has the same effect as
+     * 
+     * <pre>
+     * {@code input.associateOutput(context.processOutput(outputFile));}
+     * </pre>
+     */
+    public Output<File> associateOutput(File outputFile);
   }
 
   /**
@@ -82,11 +98,6 @@ public interface BuildContext {
     @Override
     public ResourceStatus getStatus();
 
-    /**
-     * Returns outputs associated with this input during the previous build.
-     */
-    public Iterable<? extends OutputMetadata<File>> getAssociatedOutputs();
-
     public Input<T> process();
   }
 
@@ -99,16 +110,6 @@ public interface BuildContext {
     // included input
     public void associateIncludedInput(File included);
 
-    public Output<File> associateOutput(Output<File> output);
-
-    /**
-     * Convenience method, has the same effect as
-     * 
-     * <pre>
-     * {@code input.associateOutput(context.processOutput(outputFile));}
-     * </pre>
-     */
-    public Output<File> associateOutput(File outputFile);
   }
 
   public static interface OutputMetadata<T> extends ResourceMetadata<T> {

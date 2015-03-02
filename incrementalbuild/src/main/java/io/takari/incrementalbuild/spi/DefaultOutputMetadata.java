@@ -2,6 +2,7 @@ package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext;
 import io.takari.incrementalbuild.BuildContext.InputMetadata;
+import io.takari.incrementalbuild.BuildContext.OutputMetadata;
 import io.takari.incrementalbuild.BuildContext.ResourceStatus;
 
 import java.io.File;
@@ -60,5 +61,10 @@ public class DefaultOutputMetadata implements BuildContext.OutputMetadata<File> 
   @Override
   public <V extends Serializable> V getAttribute(String key, Class<V> clazz) {
     return context.getResourceAttribute(file, key, true /* previous */, clazz);
+  }
+
+  @Override
+  public Iterable<? extends OutputMetadata<File>> getAssociatedOutputs() {
+    return context.getAssociatedOutputs(state, file);
   }
 }

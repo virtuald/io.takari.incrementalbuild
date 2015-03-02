@@ -35,7 +35,7 @@ public class DefaultBuildContextState implements Serializable {
 
   final Map<Object, ResourceHolder<?>> includedInputs;
 
-  final Map<Object, Collection<File>> inputOutputs;
+  final Map<Object, Collection<File>> resourceOutputs;
 
   final Map<File, Collection<Object>> outputInputs;
 
@@ -67,7 +67,7 @@ public class DefaultBuildContextState implements Serializable {
     this.inputs = inputs;
     this.outputs = outputs;
     this.includedInputs = includedInputs;
-    this.inputOutputs = inputOutputs;
+    this.resourceOutputs = inputOutputs;
     this.outputInputs = outputInputs;
     this.inputIncludedInputs = inputIncludedInputs;
     this.requirementInputs = requirementInputs;
@@ -119,7 +119,7 @@ public class DefaultBuildContextState implements Serializable {
     sb.append(inputs.size()).append(' ');
     sb.append(includedInputs.size()).append(' ');
     sb.append(outputs.size()).append(' ');
-    sb.append(inputOutputs.size()).append(' ');
+    sb.append(resourceOutputs.size()).append(' ');
     sb.append(outputInputs.size()).append(' ');
     sb.append(inputIncludedInputs.size()).append(' ');
     sb.append(requirementInputs.size()).append(' ');
@@ -139,7 +139,7 @@ public class DefaultBuildContextState implements Serializable {
       writeMap(oos, this.inputs);
       writeMap(oos, this.includedInputs);
 
-      writeMultimap(oos, inputOutputs);
+      writeMultimap(oos, resourceOutputs);
       writeMultimap(oos, inputIncludedInputs);
       writeDoublemap(oos, resourceAttributes);
       writeMultimap(oos, resourceMessages);
