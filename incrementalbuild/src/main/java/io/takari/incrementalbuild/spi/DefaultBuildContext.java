@@ -172,6 +172,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   public <T> DefaultInput<T> processInput(DefaultInputMetadata<T> inputMetadata) {
+    return processInput(inputMetadata, false);
+  }
+
+  public <T> DefaultInput<T> processInput(DefaultInputMetadata<T> inputMetadata, boolean force) {
     if (inputMetadata.context != this) {
       throw new IllegalArgumentException();
     }
@@ -184,11 +188,28 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
     @SuppressWarnings("unchecked")
     DefaultInput<T> input = (DefaultInput<T>) processedInputs.get(inputResource);
-    if (input == null) {
+    if (force || input == null) {
       input = new DefaultInput<T>(this, state, inputResource);
       processedInputs.put(inputResource, input);
 
       clearMessages(inputResource);
+
+      // clean this build's metadata to accommodate reprocessing
+      state.inputIncludedInputs.remove(inputResource);
+      Collection<File> outputs = state.inputOutputs.remove(inputResource);
+      if (outputs != null) {
+        for (File outputFile : outputs) {
+          Collection<Object> others = state.outputInputs.get(outputFile);
+          if (others != null) {
+            others.remove(inputResource);
+            if (others.isEmpty()) {
+              state.outputInputs.remove(outputFile);
+            }
+          }
+        }
+      }
+      state.resourceAttributes.remove(inputResource);
+      state.resourceMessages.remove(inputResource);
     }
 
     return input;
@@ -578,7 +599,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @Override
-  public Iterable<DefaultInputMetadata<File>> registerInputs(File basedir,
+  public Collection<DefaultInputMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
     basedir = normalize(basedir);
     final List<DefaultInputMetadata<File>> result = new ArrayList<>();
