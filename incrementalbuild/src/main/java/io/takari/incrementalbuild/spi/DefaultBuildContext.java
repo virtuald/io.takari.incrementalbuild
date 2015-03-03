@@ -641,11 +641,11 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @Override
-  public Iterable<DefaultInputMetadata<File>> getRegisteredInputs() {
+  public Collection<DefaultInputMetadata<File>> getRegisteredInputs() {
     return getRegisteredInputs(File.class);
   }
 
-  public <T> Iterable<DefaultInputMetadata<T>> getRegisteredInputs(Class<T> clazz) {
+  public <T> Collection<DefaultInputMetadata<T>> getRegisteredInputs(Class<T> clazz) {
     Set<DefaultInputMetadata<T>> result = new LinkedHashSet<DefaultInputMetadata<T>>();
     for (Object inputResource : state.inputs.keySet()) {
       addRegisteredInput(result, clazz, inputResource);
