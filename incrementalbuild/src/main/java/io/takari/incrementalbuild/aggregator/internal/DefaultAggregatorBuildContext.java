@@ -1,9 +1,8 @@
 package io.takari.incrementalbuild.aggregator.internal;
 
-import io.takari.incrementalbuild.BuildContext.Input;
-import io.takari.incrementalbuild.BuildContext.InputMetadata;
 import io.takari.incrementalbuild.BuildContext.Output;
-import io.takari.incrementalbuild.BuildContext.OutputMetadata;
+import io.takari.incrementalbuild.BuildContext.Resource;
+import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
 import io.takari.incrementalbuild.BuildContext.ResourceStatus;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext;
 import io.takari.incrementalbuild.spi.DefaultBuildContext;
@@ -25,9 +24,9 @@ public class DefaultAggregatorBuildContext implements AggregatorBuildContext {
   public class DefaultAggregateInput implements AggregateInput {
     private final File basedir;
 
-    private final InputMetadata<File> input;
+    private final ResourceMetadata<File> input;
 
-    public DefaultAggregateInput(File basedir, InputMetadata<File> input) {
+    public DefaultAggregateInput(File basedir, ResourceMetadata<File> input) {
       this.basedir = basedir;
       this.input = input;
     }
@@ -48,12 +47,12 @@ public class DefaultAggregatorBuildContext implements AggregatorBuildContext {
     }
 
     @Override
-    public Iterable<? extends OutputMetadata<File>> getAssociatedOutputs() {
+    public Iterable<? extends ResourceMetadata<File>> getAssociatedOutputs() {
       return input.getAssociatedOutputs();
     }
 
     @Override
-    public Input<File> process() {
+    public Resource<File> process() {
       return input.process();
     }
 
@@ -65,13 +64,13 @@ public class DefaultAggregatorBuildContext implements AggregatorBuildContext {
 
   public class DefaultAggregateOutput implements AggregateOutput {
 
-    private final OutputMetadata<File> outputMetadata;
+    private final ResourceMetadata<File> outputMetadata;
 
     private Collection<AggregateInput> inputs = new ArrayList<>();
 
     private boolean processingRequired;
 
-    public DefaultAggregateOutput(OutputMetadata<File> output) {
+    public DefaultAggregateOutput(ResourceMetadata<File> output) {
       this.outputMetadata = output;
       this.processingRequired = output.getStatus() != ResourceStatus.UNMODIFIED;
     }
@@ -85,10 +84,11 @@ public class DefaultAggregatorBuildContext implements AggregatorBuildContext {
     public void addInputs(File basedir, Collection<String> includes, Collection<String> excludes,
         InputProcessor... processors) throws IOException {
       basedir = basedir.getCanonicalFile(); // TODO move to DefaultBuildContext
-      for (InputMetadata<File> inputMetadata : context.registerInputs(basedir, includes, excludes)) {
-        if (context.getInputStatus(inputMetadata.getResource(), false) != ResourceStatus.UNMODIFIED) {
+      for (ResourceMetadata<File> inputMetadata : context.registerInputs(basedir, includes,
+          excludes)) {
+        if (context.getResourceStatus(inputMetadata.getResource(), false) != ResourceStatus.UNMODIFIED) {
           processingRequired = true;
-          Input<File> input = inputMetadata.process();
+          Resource<File> input = inputMetadata.process();
           if (processors != null) {
             for (InputProcessor processor : processors) {
               processor.process(input);
@@ -104,7 +104,7 @@ public class DefaultAggregatorBuildContext implements AggregatorBuildContext {
     @Override
     public boolean createIfNecessary(AggregateCreator creator) throws IOException {
       if (!processingRequired) {
-        for (InputMetadata<File> input : outputMetadata.getAssociatedInputs(File.class)) {
+        for (ResourceMetadata<File> input : outputMetadata.getAssociatedInputs(File.class)) {
           if (input.getStatus() != ResourceStatus.UNMODIFIED) {
             processingRequired = true;
             break;

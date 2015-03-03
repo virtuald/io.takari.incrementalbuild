@@ -33,19 +33,9 @@ public class DefaultBuildContextState implements Serializable {
 
   final Map<Object, ResourceHolder<?>> inputs;
 
-  final Map<Object, ResourceHolder<?>> includedInputs;
-
   final Map<Object, Collection<File>> resourceOutputs;
 
   final Map<File, Collection<Object>> outputInputs;
-
-  final Map<Object, Collection<Object>> inputIncludedInputs;
-
-  final Map<QualifiedName, Collection<Object>> requirementInputs;
-
-  final Map<Object, Collection<QualifiedName>> inputRequirements;
-
-  final Map<File, Collection<QualifiedName>> outputCapabilities;
 
   final Map<Object, Map<String, Serializable>> resourceAttributes;
 

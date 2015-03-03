@@ -60,8 +60,8 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   /**
    * Inputs selected for processing during this build.
    */
-  private final Map<Object, DefaultInput<?>> processedInputs =
-      new HashMap<Object, DefaultInput<?>>();
+  private final Map<Object, DefaultResource<?>> processedInputs =
+      new HashMap<Object, DefaultResource<?>>();
 
   /**
    * Outputs registered with this build context during this build.
@@ -171,25 +171,25 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     }
   }
 
-  public <T> DefaultInput<T> processInput(DefaultInputMetadata<T> inputMetadata) {
+  public <T> DefaultResource<T> processResource(DefaultResourceMetadata<T> inputMetadata) {
     return processInput(inputMetadata, false);
   }
 
-  public <T> DefaultInput<T> processInput(DefaultInputMetadata<T> inputMetadata, boolean force) {
+  public <T> DefaultResource<T> processInput(DefaultResourceMetadata<T> inputMetadata, boolean force) {
     if (inputMetadata.context != this) {
       throw new IllegalArgumentException();
     }
 
-    if (inputMetadata instanceof DefaultInput) {
-      return (DefaultInput<T>) inputMetadata;
+    if (inputMetadata instanceof DefaultResource) {
+      return (DefaultResource<T>) inputMetadata;
     }
 
     T inputResource = inputMetadata.getResource();
 
     @SuppressWarnings("unchecked")
-    DefaultInput<T> input = (DefaultInput<T>) processedInputs.get(inputResource);
+    DefaultResource<T> input = (DefaultResource<T>) processedInputs.get(inputResource);
     if (force || input == null) {
-      input = new DefaultInput<T>(this, state, inputResource);
+      input = new DefaultResource<T>(this, state, inputResource);
       processedInputs.put(inputResource, input);
 
       clearMessages(inputResource);
@@ -216,10 +216,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @Override
-  public Iterable<DefaultInput<File>> registerAndProcessInputs(File basedir,
+  public Iterable<DefaultResource<File>> registerAndProcessInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
     basedir = normalize(basedir);
-    final List<DefaultInput<File>> inputs = new ArrayList<DefaultInput<File>>();
+    final List<DefaultResource<File>> inputs = new ArrayList<DefaultResource<File>>();
     final FileMatcher matcher = FileMatcher.matcher(basedir, includes, excludes);
     workspace.walk(basedir, new FileVisitor() {
       @Override
@@ -228,12 +228,12 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
           switch (status) {
             case MODIFIED:
             case NEW: {
-              DefaultInput<File> input = getProcessedInput(file);
+              DefaultResource<File> input = getProcessedInput(file);
               if (input == null) {
-                DefaultInputMetadata<File> metadata =
+                DefaultResourceMetadata<File> metadata =
                     registerNormalizedInput(file, lastModified, length);
                 if (workspace.getMode() == Mode.DELTA
-                    || getInputStatus(file, true) != ResourceStatus.UNMODIFIED) {
+                    || getResourceStatus(file, true) != ResourceStatus.UNMODIFIED) {
                   input = metadata.process();
                 }
               }
@@ -255,8 +255,8 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @SuppressWarnings("unchecked")
-  private <I> DefaultInput<I> getProcessedInput(I resource) {
-    return (DefaultInput<I>) processedInputs.get(resource);
+  private <I> DefaultResource<I> getProcessedInput(I resource) {
+    return (DefaultResource<I>) processedInputs.get(resource);
   }
 
   // low-level methods
@@ -296,7 +296,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
             continue oldOutputs;
           }
 
-          final DefaultInput<?> input = processedInputs.get(inputResource);
+          final DefaultResource<?> input = processedInputs.get(inputResource);
           // if not eager, let the caller deal with the outputs
           if (input != null && (!eager || isAssociatedOutput(input, outputFile))) {
             // the oldOutput is associated with an input, not orphaned
@@ -320,7 +320,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return deleted;
   }
 
-  public Iterable<DefaultOutputMetadata> deleteStaleOutputs(DefaultInputMetadata<?> input)
+  public Iterable<DefaultOutputMetadata> deleteStaleOutputs(DefaultResourceMetadata<?> input)
       throws IOException {
     List<DefaultOutputMetadata> deleted = new ArrayList<DefaultOutputMetadata>();
 
@@ -447,19 +447,19 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     uptodateOutputs.add(outputFile);
   }
 
-  public DefaultInput<File> processIncludedInput(File inputFile) {
+  public DefaultResource<File> processIncludedInput(File inputFile) {
     inputFile = normalize(inputFile);
 
     if (state.includedInputs.containsKey(inputFile)) {
-      return new DefaultInput<File>(this, state, inputFile);
+      return new DefaultResource<File>(this, state, inputFile);
     }
 
     File file = registerInput(state.includedInputs, newFileState(inputFile));
 
-    return new DefaultInput<File>(this, state, file);
+    return new DefaultResource<File>(this, state, file);
   }
 
-  public ResourceStatus getInputStatus(Object inputResource, boolean associated) {
+  public ResourceStatus getResourceStatus(Object inputResource, boolean associated) {
     if (!isRegistered(inputResource)) {
       if (oldState.inputs.containsKey(inputResource)) {
         return ResourceStatus.REMOVED;
@@ -542,29 +542,29 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @Override
-  public DefaultInputMetadata<File> registerInput(File inputFile) {
+  public DefaultResourceMetadata<File> registerInput(File inputFile) {
     inputFile = normalize(inputFile);
     return registerNormalizedInput(inputFile, inputFile.lastModified(), inputFile.length());
   }
 
-  private DefaultInputMetadata<File> registerNormalizedInput(File inputFile, long lastModified,
+  private DefaultResourceMetadata<File> registerNormalizedInput(File inputFile, long lastModified,
       long length) {
 
     if (state.inputs.containsKey(inputFile)) {
       // performance shortcut, avoids IO during new FileState
-      return new DefaultInputMetadata<File>(this, oldState, inputFile);
+      return new DefaultResourceMetadata<File>(this, oldState, inputFile);
     }
 
     return registerInput(newFileState(inputFile, lastModified, length));
   }
 
-  public <T extends Serializable> DefaultInputMetadata<T> registerInput(ResourceHolder<T> holder) {
+  public <T extends Serializable> DefaultResourceMetadata<T> registerInput(ResourceHolder<T> holder) {
     T resource = registerInput(state.inputs, holder);
 
     // this returns different instance each invocation. This should not be a problem because
     // each instance is a stateless flyweight.
 
-    return new DefaultInputMetadata<T>(this, oldState, resource);
+    return new DefaultResourceMetadata<T>(this, oldState, resource);
   }
 
   private <T extends Serializable> T registerInput(Map<Object, ResourceHolder<?>> inputs,
@@ -590,8 +590,8 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return resource;
   }
 
-  public Iterable<DefaultInputMetadata<File>> registerInputs(Iterable<File> inputs) {
-    List<DefaultInputMetadata<File>> result = new ArrayList<>();
+  public Iterable<DefaultResourceMetadata<File>> registerInputs(Iterable<File> inputs) {
+    List<DefaultResourceMetadata<File>> result = new ArrayList<>();
     for (File inputFile : inputs) {
       result.add(registerInput(inputFile));
     }
@@ -599,10 +599,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @Override
-  public Collection<DefaultInputMetadata<File>> registerInputs(File basedir,
+  public Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
     basedir = normalize(basedir);
-    final List<DefaultInputMetadata<File>> result = new ArrayList<>();
+    final List<DefaultResourceMetadata<File>> result = new ArrayList<>();
     final FileMatcher matcher = FileMatcher.matcher(basedir, includes, excludes);
     workspace.walk(basedir, new FileVisitor() {
       @Override
@@ -641,12 +641,12 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   @Override
-  public Collection<DefaultInputMetadata<File>> getRegisteredInputs() {
+  public Collection<DefaultResourceMetadata<File>> getRegisteredInputs() {
     return getRegisteredInputs(File.class);
   }
 
-  public <T> Collection<DefaultInputMetadata<T>> getRegisteredInputs(Class<T> clazz) {
-    Set<DefaultInputMetadata<T>> result = new LinkedHashSet<DefaultInputMetadata<T>>();
+  public <T> Collection<DefaultResourceMetadata<T>> getRegisteredInputs(Class<T> clazz) {
+    Set<DefaultResourceMetadata<T>> result = new LinkedHashSet<DefaultResourceMetadata<T>>();
     for (Object inputResource : state.inputs.keySet()) {
       addRegisteredInput(result, clazz, inputResource);
     }
@@ -658,28 +658,28 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return result;
   }
 
-  private <T> void addRegisteredInput(Set<DefaultInputMetadata<T>> result, Class<T> clazz,
+  private <T> void addRegisteredInput(Set<DefaultResourceMetadata<T>> result, Class<T> clazz,
       Object inputResource) {
     if (clazz.isInstance(inputResource)) {
-      DefaultInputMetadata<T> input = getProcessedInput(clazz.cast(inputResource));
+      DefaultResourceMetadata<T> input = getProcessedInput(clazz.cast(inputResource));
       if (input == null) {
-        input = new DefaultInputMetadata<T>(this, state, clazz.cast(inputResource));
+        input = new DefaultResourceMetadata<T>(this, state, clazz.cast(inputResource));
       }
       result.add(input);
     }
   }
 
-  public <T> Set<DefaultInputMetadata<T>> getRemovedInputs(Class<T> clazz) {
-    Set<DefaultInputMetadata<T>> result = new LinkedHashSet<DefaultInputMetadata<T>>();
+  public <T> Set<DefaultResourceMetadata<T>> getRemovedInputs(Class<T> clazz) {
+    Set<DefaultResourceMetadata<T>> result = new LinkedHashSet<DefaultResourceMetadata<T>>();
     addRemovedInputs(result, clazz);
     return result;
   }
 
-  private <T> void addRemovedInputs(Set<DefaultInputMetadata<T>> result, Class<T> clazz) {
+  private <T> void addRemovedInputs(Set<DefaultResourceMetadata<T>> result, Class<T> clazz) {
     for (Object inputResource : oldState.inputs.keySet()) {
       if (!isRegistered(inputResource) && clazz.isInstance(inputResource)) {
         // removed
-        result.add(new DefaultInputMetadata<T>(this, oldState, clazz.cast(inputResource)));
+        result.add(new DefaultResourceMetadata<T>(this, oldState, clazz.cast(inputResource)));
       }
     }
   }
@@ -732,7 +732,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   // association management
 
-  public void associate(DefaultInputMetadata<?> input, DefaultOutput output) {
+  public void associate(DefaultResourceMetadata<?> input, DefaultOutput output) {
     associateOutput(input.getResource(), output);
   }
 
@@ -752,21 +752,21 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return collection != null ? collection.contains(member) : false;
   }
 
-  private boolean isAssociatedOutput(DefaultInput<?> input, File outputFile) {
+  private boolean isAssociatedOutput(DefaultResource<?> input, File outputFile) {
     Collection<File> outputs = state.resourceOutputs.get(input.getResource());
     return outputs != null && outputs.contains(outputFile);
   }
 
-  <I> Iterable<DefaultInputMetadata<I>> getAssociatedInputs(DefaultBuildContextState state,
+  <I> Iterable<DefaultResourceMetadata<I>> getAssociatedInputs(DefaultBuildContextState state,
       File outputFile, Class<I> clazz) {
     Collection<Object> inputFiles = state.outputInputs.get(outputFile);
     if (inputFiles == null || inputFiles.isEmpty()) {
       return Collections.emptyList();
     }
-    List<DefaultInputMetadata<I>> inputs = new ArrayList<DefaultInputMetadata<I>>();
+    List<DefaultResourceMetadata<I>> inputs = new ArrayList<DefaultResourceMetadata<I>>();
     for (Object inputFile : inputFiles) {
       if (clazz.isAssignableFrom(clazz)) {
-        inputs.add(new DefaultInputMetadata<I>(this, state, clazz.cast(inputFile)));
+        inputs.add(new DefaultResourceMetadata<I>(this, state, clazz.cast(inputFile)));
       }
     }
     return inputs;
@@ -801,18 +801,18 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return outputs;
   }
 
-  public void associateIncludedInput(DefaultInput<?> input, DefaultInput<File> included) {
+  public void associateIncludedInput(DefaultResource<?> input, DefaultResource<File> included) {
     put(state.inputIncludedInputs, input.getResource(), included.getResource());
   }
 
   // provided/required capability matching
 
-  void addRequirement(DefaultInput<?> input, String qualifier, String localName) {
+  void addRequirement(DefaultResource<?> input, String qualifier, String localName) {
     addRequirement(input, new QualifiedName(qualifier, localName));
   }
 
-  Collection<String> getRequirements(DefaultInputMetadata<?> input, DefaultBuildContextState state,
-      String qualifier) {
+  Collection<String> getRequirements(DefaultResourceMetadata<?> input,
+      DefaultBuildContextState state, String qualifier) {
     Set<String> requirements = new HashSet<String>();
     Collection<QualifiedName> inputRequirements = state.inputRequirements.get(input.getResource());
     if (inputRequirements != null) {
@@ -825,7 +825,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return requirements;
   }
 
-  private void addRequirement(DefaultInput<?> input, QualifiedName requirement) {
+  private void addRequirement(DefaultResource<?> input, QualifiedName requirement) {
     addInputRequirement(input.getResource(), requirement);
   }
 
@@ -856,9 +856,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
    * Returns {@code Input}s with specified requirement. Inputs from the old state are automatically
    * registered for processing.
    */
-  public Iterable<DefaultInputMetadata<File>> getDependentInputs(String qualifier, String localName) {
-    Map<Object, DefaultInputMetadata<File>> result =
-        new LinkedHashMap<Object, DefaultInputMetadata<File>>();
+  public Iterable<DefaultResourceMetadata<File>> getDependentInputs(String qualifier,
+      String localName) {
+    Map<Object, DefaultResourceMetadata<File>> result =
+        new LinkedHashMap<Object, DefaultResourceMetadata<File>>();
 
     QualifiedName requirement = new QualifiedName(qualifier, localName);
 

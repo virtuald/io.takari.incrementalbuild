@@ -61,7 +61,10 @@ public interface BuildContext {
     /**
      * Returns outputs associated with this input during the previous build.
      */
-    public Iterable<? extends OutputMetadata<File>> getAssociatedOutputs();
+    public Iterable<? extends ResourceMetadata<File>> getAssociatedOutputs();
+
+    public Resource<T> process();
+
   }
 
   public static interface Resource<T> extends ResourceMetadata<T> {
@@ -75,60 +78,13 @@ public interface BuildContext {
 
     public Output<File> associateOutput(Output<File> output);
 
-    /**
-     * Convenience method, has the same effect as
-     * 
-     * <pre>
-     * {@code input.associateOutput(context.processOutput(outputFile));}
-     * </pre>
-     */
     public Output<File> associateOutput(File outputFile);
   }
 
-  /**
-   * Read-only state associated with input. Use {@link #process()} to manipulate the state.
-   */
-  public static interface InputMetadata<T> extends ResourceMetadata<T> {
-
-    /**
-     * Returns up-to-date status of this input compared to the previous build. Covers status of the
-     * input itself, included inputs, if any, and associated outputs, if any. Honours context build
-     * escalation.
-     */
-    @Override
-    public ResourceStatus getStatus();
-
-    public Input<T> process();
-  }
-
-  /**
-   * Read-write state associated with input.
-   */
-  public static interface Input<T> extends InputMetadata<T>, Resource<T> {
-
-    // TODO return IncludedInput<File>, which can be used to track messages associated with the
-    // included input
-    public void associateIncludedInput(File included);
-
-  }
-
-  public static interface OutputMetadata<T> extends ResourceMetadata<T> {
-
-    /**
-     * Returns up-to-date status of this output compared to the previous build. Does not consider
-     * associated inputs.
-     */
-    @Override
-    public ResourceStatus getStatus();
-
-    public <I> Iterable<? extends InputMetadata<I>> getAssociatedInputs(Class<I> clazz);
-  }
-
-  public static interface Output<T> extends OutputMetadata<T>, Resource<T> {
+  public static interface Output<T> extends Resource<T> {
 
     public OutputStream newOutputStream() throws IOException;
 
-    public <I> void associateInput(InputMetadata<I> input);
   }
 
   /**
@@ -145,7 +101,7 @@ public interface BuildContext {
    * @return {@link InputMetadata} representing the input file, never {@code null}.
    * @throws IllegalArgumentException if inputFile is not a file or cannot be read
    */
-  public InputMetadata<File> registerInput(File inputFile);
+  // public InputMetadata<File> registerInput(File inputFile);
 
   /**
    * Registers inputs identified by {@code basedir} and {@code includes}/{@code excludes} ant
@@ -165,7 +121,7 @@ public interface BuildContext {
    * @param excludes patterns of the files to ignore, can be {@code null}
    * @see http://ant.apache.org/manual/dirtasks.html#patterns
    */
-  public Iterable<? extends InputMetadata<File>> registerInputs(File basedir,
+  public Iterable<? extends ResourceMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException;
 
   /**
@@ -174,7 +130,7 @@ public interface BuildContext {
    * 
    * @returns processed inputs
    */
-  public Iterable<? extends Input<File>> registerAndProcessInputs(File basedir,
+  public Iterable<? extends Resource<File>> registerAndProcessInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException;
 
   public Output<File> processOutput(File outputFile);
@@ -183,11 +139,11 @@ public interface BuildContext {
    * Returns all inputs registered with this {@link BuildContext} during current and previous
    * builds.
    */
-  public Iterable<? extends InputMetadata<File>> getRegisteredInputs();
+  // public Iterable<? extends InputMetadata<File>> getRegisteredInputs();
 
   /**
    * Returns all outputs processed by this {@link BuildContext} during current build or carried over
    * from previous build.
    */
-  public Iterable<? extends OutputMetadata<File>> getProcessedOutputs();
+  // public Iterable<? extends OutputMetadata<File>> getProcessedOutputs();
 }

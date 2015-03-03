@@ -1,8 +1,8 @@
 package io.takari.incrementalbuild.aggregator;
 
-import io.takari.incrementalbuild.BuildContext.Input;
-import io.takari.incrementalbuild.BuildContext.InputMetadata;
 import io.takari.incrementalbuild.BuildContext.Output;
+import io.takari.incrementalbuild.BuildContext.Resource;
+import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
 
 import java.io.File;
 import java.io.IOException;
@@ -48,7 +48,7 @@ public interface AggregatorBuildContext {
    * Input attributes.
    */
   public static interface InputProcessor {
-    public void process(Input<File> input) throws IOException;
+    public void process(Resource<File> input) throws IOException;
   }
 
   /**
@@ -74,7 +74,7 @@ public interface AggregatorBuildContext {
   }
 
   // TODO this will go away once #getRelativePath moves to InputMetadata
-  public static interface AggregateInput extends InputMetadata<File> {
+  public static interface AggregateInput extends ResourceMetadata<File> {
 
     /**
      * When input was registered using glob matching, returns base directory of the match.

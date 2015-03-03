@@ -84,7 +84,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -109,7 +109,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -117,7 +117,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     Files.append("test", inputFile, Charsets.UTF_8); // TODO does not matter
     context = newBuildContext();
     input = context.registerInput(inputFile).process();
-    context.processInput(input);
+    context.processResource(input);
 
     // input was modified and registered for processing
     // but actual processing has not happened yet
@@ -134,12 +134,12 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
     context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     context.deleteStaleOutputs(true);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(1, toList(metadata.getAssociatedOutputs()).size());
@@ -158,7 +158,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -198,13 +198,13 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
     // carry over, do not delete
     context = newBuildContext();
-    DefaultInputMetadata<File> inputMetadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> inputMetadata = context.registerInput(inputFile);
     Assert.assertEquals(0, toList(context.deleteStaleOutputs(inputMetadata)).size());
     Assert.assertTrue(outputFile.canRead());
 
@@ -260,7 +260,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     // initial build
     DefaultBuildContext<?> context = newBuildContext();
     // first time invocation returns Input for processing
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -295,7 +295,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     // initial build
     DefaultBuildContext<?> context = newBuildContext();
     // first time invocation returns Input for processing
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateIncludedInput(includedFile);
     context.commit();
 
@@ -328,7 +328,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -349,7 +349,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -367,20 +367,20 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile2 = temp.newFile("outputFile2");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile1);
     input.associateOutput(outputFile2);
     context.commit();
 
     context = newBuildContext();
     input = context.registerInput(inputFile).process();
-    context.processInput(input);
+    context.processResource(input);
     input.associateOutput(outputFile1);
     context.commit();
     Assert.assertFalse(outputFile2.canRead());
 
     context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     Assert.assertEquals(1, toList(metadata.getAssociatedOutputs()).size());
     context.commit();
   }
@@ -424,7 +424,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File inputFile = temp.newFile("inputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.addRequirement("a", "b");
     context.commit();
 
@@ -448,7 +448,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     List<String> includes = Arrays.asList(inputFile.getName());
 
     DefaultBuildContext<?> context = newBuildContext();
-    List<DefaultInput<File>> inputs =
+    List<DefaultResource<File>> inputs =
         toList(context.registerAndProcessInputs(temp.getRoot(), includes, null));
     Assert.assertEquals(1, inputs.size());
     Assert.assertEquals(ResourceStatus.NEW, inputs.get(0).getStatus());
@@ -473,7 +473,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     //
     context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     List<? extends OutputMetadata<File>> outputs = toList(metadata.getAssociatedOutputs());
     Assert.assertEquals(1, outputs.size());
     Assert.assertEquals(ResourceStatus.UNMODIFIED, outputs.get(0).getStatus());
@@ -544,7 +544,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     context = newBuildContext();
     context.registerInput(inputFile1); // UNMODIFIED
-    List<DefaultInputMetadata<File>> removed = toList(context.getRemovedInputs(File.class));
+    List<DefaultResourceMetadata<File>> removed = toList(context.getRemovedInputs(File.class));
     Assert.assertEquals(1, removed.size());
     Assert.assertEquals(inputFile2, removed.get(0).getResource());
   }
@@ -557,7 +557,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile3 = temp.newFile("outputFile3");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     outputFile1 = input.associateOutput(outputFile1).getResource();
     outputFile2 = input.associateOutput(outputFile2).getResource();
     Map<File, OutputMetadata<File>> outputs = toMap(context.getProcessedOutputs());
@@ -597,7 +597,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     // dropped output is not carried over
     context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     Assert.assertEquals(2, toMap(metadata.getAssociatedOutputs()).size());
     outputs = toMap(context.getProcessedOutputs());
     Assert.assertEquals(2, outputs.size());
@@ -647,9 +647,9 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File inputFile = temp.newFile("inputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     Assert.assertNull(metadata.getAttribute("key", String.class));
-    DefaultInput<File> input = metadata.process();
+    DefaultResource<File> input = metadata.process();
     Assert.assertNull(input.setAttribute("key", "value"));
     context.commit();
 
@@ -755,7 +755,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
       Object dummy = tccl.loadClass("dummy.Dummy").newInstance();
 
-      DefaultInput<File> input = context.registerInput(inputFile).process();
+      DefaultResource<File> input = context.registerInput(inputFile).process();
       input.setAttribute("dummy", (Serializable) dummy);
       context.commit();
 
@@ -786,9 +786,9 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     context =
         newBuildContext(Collections.<String, Serializable>singletonMap("config", "parameter"));
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     Assert.assertEquals(ResourceStatus.MODIFIED, metadata.getStatus());
-    DefaultInput<File> input = metadata.process();
+    DefaultResource<File> input = metadata.process();
     Assert.assertEquals(ResourceStatus.MODIFIED, input.getStatus());
     DefaultOutput output = input.associateOutput(outputFile);
     Assert.assertEquals(ResourceStatus.MODIFIED, output.getStatus());
@@ -802,9 +802,9 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     // initial message
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     inputFile = metadata.getResource();
-    DefaultInput<File> input = metadata.process();
+    DefaultResource<File> input = metadata.process();
     input.addMessage(0, 0, "message", Severity.WARNING, null);
     context.commit();
 
@@ -854,9 +854,9 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     // initial message
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     inputFile = metadata.getResource();
-    DefaultInput<File> input = metadata.process();
+    DefaultResource<File> input = metadata.process();
     input.addMessage(0, 0, null, Severity.WARNING, null);
     context.commit();
 
@@ -875,8 +875,8 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     // initial message
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
-    DefaultInput<File> input = metadata.process();
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResource<File> input = metadata.process();
     DefaultOutput output = input.associateOutput(outputFile);
     output.addMessage(0, 0, "message", Severity.WARNING, null);
     context.commit();
@@ -935,7 +935,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputWithoutInput = temp.newFile("output_without_inputs");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     input.associateIncludedInput(includedInputFile);
     context.processOutput(outputWithoutInput);
@@ -964,7 +964,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     // modified input
     Files.append("test", inputFile, Charsets.UTF_8);
     context = newBuildContext();
-    DefaultInputMetadata<File> metadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     Assert.assertTrue(context.isProcessingRequired());
     input = metadata.process();
     input.associateOutput(outputFile);
@@ -1103,9 +1103,9 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     assertIncludedPaths(Arrays.asList(f2, f3), actual);
   }
 
-  private List<File> toFileList(Iterable<DefaultInputMetadata<File>> inputs) {
+  private List<File> toFileList(Iterable<DefaultResourceMetadata<File>> inputs) {
     List<File> files = new ArrayList<>();
-    for (DefaultInputMetadata<File> input : inputs) {
+    for (DefaultResourceMetadata<File> input : inputs) {
       files.add(input.getResource());
     }
     return files;
@@ -1164,7 +1164,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
     context.commit();
 
@@ -1179,7 +1179,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
 
     //
     context = newBuildContext();
-    DefaultInputMetadata<File> inputMetadata = context.registerInput(inputFile);
+    DefaultResourceMetadata<File> inputMetadata = context.registerInput(inputFile);
     Assert.assertEquals(ResourceStatus.MODIFIED, inputMetadata.getStatus());
     inputMetadata.process();
     context.commit();
@@ -1192,7 +1192,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     File outputFile = temp.newFile("outputFile");
 
     DefaultBuildContext<?> context = newBuildContext();
-    DefaultInput<File> input = context.registerInput(inputFile).process();
+    DefaultResource<File> input = context.registerInput(inputFile).process();
     input.associateOutput(outputFile);
 
     try {

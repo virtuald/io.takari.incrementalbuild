@@ -2,8 +2,8 @@ package io.takari.incremental.demo;
 
 import io.takari.incrementalbuild.BuildContext.ResourceStatus;
 import io.takari.incrementalbuild.spi.DefaultBuildContext;
-import io.takari.incrementalbuild.spi.DefaultInput;
-import io.takari.incrementalbuild.spi.DefaultInputMetadata;
+import io.takari.incrementalbuild.spi.DefaultResource;
+import io.takari.incrementalbuild.spi.DefaultResourceMetadata;
 import io.takari.incrementalbuild.spi.ResourceHolder;
 
 import java.io.File;
@@ -84,7 +84,7 @@ public class DependencyResourceMockup {
     File file = artifact.getFile();
 
     // ArtifactFile is (groupId, artifactId, path) 3-tuple
-    DefaultInputMetadata<ArtifactFile> metadata =
+    DefaultResourceMetadata<ArtifactFile> metadata =
         context.registerInput(new ArtifactFileHolder(artifact, artifactPath));
 
     File oldFile = metadata.getAttribute("file", File.class);
@@ -114,7 +114,7 @@ public class DependencyResourceMockup {
     }
   }
 
-  private void doSomethingUsefulWithResource(DefaultInput<ArtifactFile> process) {
+  private void doSomethingUsefulWithResource(DefaultResource<ArtifactFile> process) {
 
 
   }
