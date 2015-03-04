@@ -12,7 +12,6 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -59,10 +58,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     if (closed) {
       throw new IllegalStateException();
     }
-  }
-
-  public <T> DefaultResource<T> processResource(DefaultResourceMetadata<T> inputMetadata) {
-    return processInput(inputMetadata, false);
   }
 
   public <T> DefaultResource<T> processInput(DefaultResourceMetadata<T> inputMetadata, boolean force) {
@@ -142,11 +137,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       }
     });
     return inputs;
-  }
-
-  @SuppressWarnings("unchecked")
-  private <I> DefaultResource<I> getProcessedInput(I resource) {
-    return (DefaultResource<I>) processedInputs.get(resource);
   }
 
   // low-level methods
@@ -240,24 +230,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return deleted;
   }
 
-  /**
-   * Returns {@code true} if inputResource is considered part of inputs set of the current build,
-   * i.e. it was registered during this build.
-   * <p>
-   * For Workspace.Mode.DELTA this also includes inputResources that were registered in the previous
-   * build and were not explicitly deleted in this build.
-   */
-  private boolean isRegistered(Object inputResource) {
-    if (state.resources.containsKey(inputResource)) {
-      return true;
-    }
-    if (workspace.getMode() == Mode.DELTA || workspace.getMode() == Mode.SUPPRESSED) {
-      return oldState.resources.containsKey(inputResource)
-          && !deletedInputs.contains(inputResource);
-    }
-    return false;
-  }
-
   protected void deleteStaleOutput(File outputFile) throws IOException {
     workspace.deleteFile(outputFile);
   }
@@ -275,24 +247,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   /**
-   * Marks all outputs processed during the previous build as up-to-date, in other words, the
-   * outputs and their associated metadata are carried over to the next build as-is. This method is
-   * only allowed when {@link #isProcessingRequired()} returns {@code false}. No context
-   * modification operations (register* or process) are permitted after this call.
-   * <p>
-   * This is useful when this build context is used to track both inputs and outputs but not
-   * association between the two. Without input/output association information the build context is
-   * not able to determine what outputs are stale/orphaned and what outputs are still relevant.
-   */
-  public void markOutputsAsUptodate() {
-    if (isProcessingRequired() || !oldState.resourceOutputs.isEmpty()) {
-      throw new IllegalStateException();
-    }
-
-    closed = true;
-  }
-
-  /**
    * Marks skipped build execution. All inputs, outputs and their associated metadata are carried
    * over to the next build as-is. No context modification operations (register* or process) are
    * permitted after this call.
@@ -303,10 +257,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     }
 
     closed = true;
-  }
-
-  public void markOutputAsUptodate(File outputFile) {
-    uptodateOutputs.add(outputFile);
   }
 
   @Override
@@ -324,14 +274,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return new DefaultResourceMetadata<T>(this, oldState, resource);
   }
 
-  public Iterable<DefaultResourceMetadata<File>> registerInputs(Iterable<File> inputs) {
-    List<DefaultResourceMetadata<File>> result = new ArrayList<>();
-    for (File inputFile : inputs) {
-      result.add(registerInput(inputFile));
-    }
-    return result;
-  }
-
   @Override
   public Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
@@ -339,40 +281,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
     return tracker.registerInputs(basedir, includes, excludes);
   }
-
-  @Override
-  public Collection<DefaultResourceMetadata<File>> getRegisteredInputs() {
-    return getRegisteredInputs(File.class);
-  }
-
-  public <T> Collection<DefaultResourceMetadata<T>> getRegisteredInputs(Class<T> clazz) {
-    Set<DefaultResourceMetadata<T>> result = new LinkedHashSet<DefaultResourceMetadata<T>>();
-    for (Object inputResource : state.resources.keySet()) {
-      addRegisteredInput(result, clazz, inputResource);
-    }
-    for (Object inputResource : oldState.resources.keySet()) {
-      if (!state.resources.containsKey(inputResource)) {
-        addRegisteredInput(result, clazz, inputResource);
-      }
-    }
-    return result;
-  }
-
-  public <T> Set<DefaultResourceMetadata<T>> getRemovedInputs(Class<T> clazz) {
-    Set<DefaultResourceMetadata<T>> result = new LinkedHashSet<DefaultResourceMetadata<T>>();
-    addRemovedInputs(result, clazz);
-    return result;
-  }
-
-  private <T> void addRemovedInputs(Set<DefaultResourceMetadata<T>> result, Class<T> clazz) {
-    for (Object inputResource : oldState.resources.keySet()) {
-      if (!isRegistered(inputResource) && clazz.isInstance(inputResource)) {
-        // removed
-        result.add(new DefaultResourceMetadata<T>(this, oldState, clazz.cast(inputResource)));
-      }
-    }
-  }
-
 
   @Override
   public Iterable<DefaultOutputMetadata> getProcessedOutputs() {
@@ -411,30 +319,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   public void associate(DefaultResource<?> resource, DefaultOutput output) {
     tracker.associate(resource, output);
-  }
-
-  private static <T> boolean contains(Collection<T> collection, T member) {
-    return collection != null ? collection.contains(member) : false;
-  }
-
-  private boolean isAssociatedOutput(DefaultResource<?> input, File outputFile) {
-    Collection<File> outputs = state.resourceOutputs.get(input.getResource());
-    return outputs != null && outputs.contains(outputFile);
-  }
-
-  <I> Iterable<DefaultResourceMetadata<I>> getAssociatedInputs(DefaultBuildContextState state,
-      File outputFile, Class<I> clazz) {
-    Collection<Object> inputFiles = state.outputInputs.get(outputFile);
-    if (inputFiles == null || inputFiles.isEmpty()) {
-      return Collections.emptyList();
-    }
-    List<DefaultResourceMetadata<I>> inputs = new ArrayList<DefaultResourceMetadata<I>>();
-    for (Object inputFile : inputFiles) {
-      if (clazz.isAssignableFrom(clazz)) {
-        inputs.add(new DefaultResourceMetadata<I>(this, state, clazz.cast(inputFile)));
-      }
-    }
-    return inputs;
   }
 
   // messages
