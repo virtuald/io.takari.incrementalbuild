@@ -1,6 +1,7 @@
 package io.takari.incrementalbuild.spi;
 
 import static io.takari.incrementalbuild.spi.MMaps.put;
+import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
 import io.takari.incrementalbuild.BuildContext.ResourceStatus;
 import io.takari.incrementalbuild.BuildContext.Severity;
 import io.takari.incrementalbuild.workspace.Workspace;
@@ -13,6 +14,7 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -269,4 +271,29 @@ public class DefaultResourceTracker implements ResourceTracker {
     return workspace.newOutputStream(output.getResource());
   }
 
+  @Override
+  public <T> void associate(DefaultResource<T> resource, DefaultOutput output) {
+    if (resource.context != this) {
+      throw new IllegalArgumentException();
+    }
+    if (output.context != this) {
+      throw new IllegalArgumentException();
+    }
+
+    put(state.resourceOutputs, resource.getResource(), output.getResource());
+  }
+
+  @Override
+  public Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(
+      DefaultBuildContextState state, Object resource) {
+    Collection<File> outputFiles = state.resourceOutputs.get(resource);
+    if (outputFiles == null || outputFiles.isEmpty()) {
+      return Collections.emptyList();
+    }
+    List<ResourceMetadata<File>> outputs = new ArrayList<>();
+    for (File outputFile : outputFiles) {
+      outputs.add(new DefaultResourceMetadata<File>(this, state, outputFile));
+    }
+    return outputs;
+  }
 }

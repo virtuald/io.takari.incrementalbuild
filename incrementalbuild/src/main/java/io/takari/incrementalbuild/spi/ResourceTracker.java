@@ -31,4 +31,6 @@ interface ResourceTracker {
   DefaultOutput processOutput(File outputFile);
 
   OutputStream newOutputStream(DefaultOutput output) throws IOException;
+
+  <T> void associate(DefaultResource<T> defaultResource, DefaultOutput output);
 }
