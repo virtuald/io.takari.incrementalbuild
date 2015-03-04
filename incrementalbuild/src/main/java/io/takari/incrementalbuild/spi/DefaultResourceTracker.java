@@ -1,12 +1,15 @@
 package io.takari.incrementalbuild.spi;
 
+import static io.takari.incrementalbuild.spi.MMaps.put;
 import io.takari.incrementalbuild.BuildContext.ResourceStatus;
+import io.takari.incrementalbuild.BuildContext.Severity;
 import io.takari.incrementalbuild.workspace.Workspace;
 import io.takari.incrementalbuild.workspace.Workspace.FileVisitor;
 import io.takari.incrementalbuild.workspace.Workspace.Mode;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -228,6 +231,27 @@ public class DefaultResourceTracker implements ResourceTracker {
       Object resource, String key, Class<T> clazz) {
     Map<String, Serializable> attributes = state.resourceAttributes.get(resource);
     return attributes != null ? clazz.cast(attributes.get(key)) : null;
+  }
+
+  // persisted messages
+
+  @Override
+  public void addMessage(Object resource, int line, int column, String message, Severity severity,
+      Throwable cause) {
+    // this is likely called as part of builder error handling logic.
+    // to make IAE easier to troubleshoot, link cause to the exception thrown
+    if (resource == null) {
+      throw new IllegalArgumentException(cause);
+    }
+    if (severity == null) {
+      throw new IllegalArgumentException(cause);
+    }
+    put(state.resourceMessages, resource, new Message(line, column, message, severity, cause));
+  }
+
+  @Override
+  public OutputStream newOutputStream(DefaultOutput output) throws IOException {
+    return workspace.newOutputStream(output.getResource());
   }
 
 }
