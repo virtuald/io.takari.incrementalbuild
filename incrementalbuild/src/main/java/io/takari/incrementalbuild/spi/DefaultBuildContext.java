@@ -358,11 +358,12 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
    * build and were not explicitly deleted in this build.
    */
   private boolean isRegistered(Object inputResource) {
-    if (state.inputs.containsKey(inputResource)) {
+    if (state.resources.containsKey(inputResource)) {
       return true;
     }
     if (workspace.getMode() == Mode.DELTA || workspace.getMode() == Mode.SUPPRESSED) {
-      return oldState.inputs.containsKey(inputResource) && !deletedInputs.contains(inputResource);
+      return oldState.resources.containsKey(inputResource)
+          && !deletedInputs.contains(inputResource);
     }
     return false;
   }
@@ -461,13 +462,13 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   public ResourceStatus getResourceStatus(Object inputResource, boolean associated) {
     if (!isRegistered(inputResource)) {
-      if (oldState.inputs.containsKey(inputResource)) {
+      if (oldState.resources.containsKey(inputResource)) {
         return ResourceStatus.REMOVED;
       }
       throw new IllegalArgumentException("Unregistered input file " + inputResource);
     }
 
-    ResourceHolder<?> oldInputState = oldState.inputs.get(inputResource);
+    ResourceHolder<?> oldInputState = oldState.resources.get(inputResource);
     if (oldInputState == null) {
       return ResourceStatus.NEW;
     }
@@ -550,7 +551,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   private DefaultResourceMetadata<File> registerNormalizedInput(File inputFile, long lastModified,
       long length) {
 
-    if (state.inputs.containsKey(inputFile)) {
+    if (state.resources.containsKey(inputFile)) {
       // performance shortcut, avoids IO during new FileState
       return new DefaultResourceMetadata<File>(this, oldState, inputFile);
     }
@@ -559,7 +560,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   public <T extends Serializable> DefaultResourceMetadata<T> registerInput(ResourceHolder<T> holder) {
-    T resource = registerInput(state.inputs, holder);
+    T resource = registerInput(state.resources, holder);
 
     // this returns different instance each invocation. This should not be a problem because
     // each instance is a stateless flyweight.
@@ -626,10 +627,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       // only NEW, MODIFIED and REMOVED resources are reported in DELTA mode
       // need to find any UNMODIFIED
       final FileMatcher absoluteMatcher = FileMatcher.matcher(basedir, includes, excludes);
-      for (Object resource : oldState.inputs.keySet()) {
+      for (Object resource : oldState.resources.keySet()) {
         if (resource instanceof File) {
           File file = (File) resource;
-          if (!state.inputs.containsKey(file) && !deletedInputs.contains(file)
+          if (!state.resources.containsKey(file) && !deletedInputs.contains(file)
               && absoluteMatcher.matches(file)) {
             // TODO carry-over FileState
             result.add(registerInput(file));
@@ -647,11 +648,11 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   public <T> Collection<DefaultResourceMetadata<T>> getRegisteredInputs(Class<T> clazz) {
     Set<DefaultResourceMetadata<T>> result = new LinkedHashSet<DefaultResourceMetadata<T>>();
-    for (Object inputResource : state.inputs.keySet()) {
+    for (Object inputResource : state.resources.keySet()) {
       addRegisteredInput(result, clazz, inputResource);
     }
-    for (Object inputResource : oldState.inputs.keySet()) {
-      if (!state.inputs.containsKey(inputResource)) {
+    for (Object inputResource : oldState.resources.keySet()) {
+      if (!state.resources.containsKey(inputResource)) {
         addRegisteredInput(result, clazz, inputResource);
       }
     }
@@ -676,7 +677,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   }
 
   private <T> void addRemovedInputs(Set<DefaultResourceMetadata<T>> result, Class<T> clazz) {
-    for (Object inputResource : oldState.inputs.keySet()) {
+    for (Object inputResource : oldState.resources.keySet()) {
       if (!isRegistered(inputResource) && clazz.isInstance(inputResource)) {
         // removed
         result.add(new DefaultResourceMetadata<T>(this, oldState, clazz.cast(inputResource)));
@@ -805,89 +806,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     put(state.inputIncludedInputs, input.getResource(), included.getResource());
   }
 
-  // provided/required capability matching
-
-  void addRequirement(DefaultResource<?> input, String qualifier, String localName) {
-    addRequirement(input, new QualifiedName(qualifier, localName));
-  }
-
-  Collection<String> getRequirements(DefaultResourceMetadata<?> input,
-      DefaultBuildContextState state, String qualifier) {
-    Set<String> requirements = new HashSet<String>();
-    Collection<QualifiedName> inputRequirements = state.inputRequirements.get(input.getResource());
-    if (inputRequirements != null) {
-      for (QualifiedName requirement : inputRequirements) {
-        if (qualifier.equals(requirement.getQualifier())) {
-          requirements.add(requirement.getLocalName());
-        }
-      }
-    }
-    return requirements;
-  }
-
-  private void addRequirement(DefaultResource<?> input, QualifiedName requirement) {
-    addInputRequirement(input.getResource(), requirement);
-  }
-
-  private void addInputRequirement(Object inputResource, QualifiedName requirement) {
-    put(state.requirementInputs, requirement, inputResource);
-    put(state.inputRequirements, inputResource, requirement);
-  }
-
-  public void addCapability(DefaultOutput output, String qualifier, String localName) {
-    put(state.outputCapabilities, output.getResource(), new QualifiedName(qualifier, localName));
-  }
-
-  public Collection<String> getOutputCapabilities(File outputFile, String qualifier) {
-    Collection<QualifiedName> capabilities = state.outputCapabilities.get(outputFile);
-    if (capabilities == null) {
-      return Collections.emptyList();
-    }
-    Set<String> result = new LinkedHashSet<String>();
-    for (QualifiedName capability : capabilities) {
-      if (qualifier.equals(capability.getQualifier())) {
-        result.add(capability.getLocalName());
-      }
-    }
-    return result;
-  }
-
-  /**
-   * Returns {@code Input}s with specified requirement. Inputs from the old state are automatically
-   * registered for processing.
-   */
-  public Iterable<DefaultResourceMetadata<File>> getDependentInputs(String qualifier,
-      String localName) {
-    Map<Object, DefaultResourceMetadata<File>> result =
-        new LinkedHashMap<Object, DefaultResourceMetadata<File>>();
-
-    QualifiedName requirement = new QualifiedName(qualifier, localName);
-
-    Collection<Object> inputResources = state.requirementInputs.get(requirement);
-    if (inputResources != null) {
-      for (Object inputResource : inputResources) {
-        if (inputResource instanceof File) {
-          result.put(inputResource, getProcessedInput((File) inputResource));
-        }
-      }
-    }
-
-    Collection<Object> oldInputResources = oldState.requirementInputs.get(requirement);
-    if (oldInputResources != null) {
-      for (Object inputResource : oldInputResources) {
-        ResourceHolder<?> oldInputState = oldState.inputs.get(inputResource);
-        if (inputResource instanceof File) {
-          if (!result.containsKey(inputResource)
-              && getResourceStatus(oldInputState) != ResourceStatus.REMOVED) {
-            result.put(inputResource, registerInput((File) inputResource));
-          }
-        }
-      }
-    }
-
-    return result.values();
-  }
-
   // simple key/value pairs
 
   public <T extends Serializable> Serializable setResourceAttribute(Object resource, String key,
@@ -961,14 +879,14 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     Map<Object, Collection<Message>> newMessages = new HashMap<>(state.resourceMessages);
     Map<Object, Collection<Message>> recordedMessages = new HashMap<>();
 
-    for (Object inputResource : oldState.inputs.keySet()) {
+    for (Object inputResource : oldState.resources.keySet()) {
       if (!isRegistered(inputResource)) {
         clearMessages(inputResource);
         continue;
       }
-      if (!state.inputs.containsKey(inputResource)) {
+      if (!state.resources.containsKey(inputResource)) {
         // this is possible with delta workspaces
-        state.inputs.put(inputResource, oldState.inputs.get(inputResource));
+        state.resources.put(inputResource, oldState.resources.get(inputResource));
       }
       if (!processedInputs.containsKey(inputResource)) {
         // copy associated outputs
@@ -993,14 +911,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
           }
         }
 
-        // copy requirements
-        Collection<QualifiedName> requirements = oldState.inputRequirements.get(inputResource);
-        if (requirements != null) {
-          for (QualifiedName requirement : requirements) {
-            addInputRequirement(inputResource, requirement);
-          }
-        }
-
         // copy messages
         carryOverMessages(inputResource, recordedMessages);
 
@@ -1012,7 +922,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       }
     }
 
-    for (ResourceHolder<?> resource : state.inputs.values()) {
+    for (ResourceHolder<?> resource : state.resources.values()) {
       if (getResourceStatus(resource) != ResourceStatus.UNMODIFIED) {
         throw new IllegalStateException("Unexpected input change " + resource.getResource());
       }
@@ -1131,11 +1041,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   protected void carryOverOutput(File outputFile) {
     state.outputs.put(outputFile, oldState.outputs.get(outputFile));
 
-    Collection<QualifiedName> capabilities = oldState.outputCapabilities.get(outputFile);
-    if (capabilities != null) {
-      state.outputCapabilities.put(outputFile, new LinkedHashSet<QualifiedName>(capabilities));
-    }
-
     Map<String, Serializable> attributes = oldState.resourceAttributes.get(outputFile);
     if (attributes != null) {
       state.resourceAttributes.put(outputFile, attributes);
@@ -1146,13 +1051,13 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     if (escalated || isModified()) {
       return true;
     }
-    for (Object inputResource : state.inputs.keySet()) {
-      ResourceHolder<?> oldInputState = oldState.inputs.get(inputResource);
+    for (Object inputResource : state.resources.keySet()) {
+      ResourceHolder<?> oldInputState = oldState.resources.get(inputResource);
       if (oldInputState == null || getResourceStatus(oldInputState) != ResourceStatus.UNMODIFIED) {
         return true;
       }
     }
-    for (Object oldInputResource : oldState.inputs.keySet()) {
+    for (Object oldInputResource : oldState.resources.keySet()) {
       if (!isRegistered(oldInputResource)) {
         return true;
       }

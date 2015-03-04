@@ -31,7 +31,7 @@ public class DefaultBuildContextState implements Serializable {
 
   final Map<File, ResourceHolder<File>> outputs;
 
-  final Map<Object, ResourceHolder<?>> inputs;
+  final Map<Object, ResourceHolder<?>> resources;
 
   final Map<Object, Collection<File>> resourceOutputs;
 
@@ -44,27 +44,17 @@ public class DefaultBuildContextState implements Serializable {
   private DefaultBuildContextState(Map<String, Serializable> configuration //
       , Map<Object, ResourceHolder<?>> inputs //
       , Map<File, ResourceHolder<File>> outputs //
-      , Map<Object, ResourceHolder<?>> includedInputs //
-      , Map<Object, Collection<File>> inputOutputs //
+      , Map<Object, Collection<File>> resourceOutputs //
       , Map<File, Collection<Object>> outputInputs //
-      , Map<Object, Collection<Object>> inputIncludedInputs //
-      , Map<QualifiedName, Collection<Object>> requirementInputs //
-      , Map<Object, Collection<QualifiedName>> inputRequirements //
-      , Map<File, Collection<QualifiedName>> outputCapabilities //
       , Map<Object, Map<String, Serializable>> resourceAttributes //
-      , Map<Object, Collection<Message>> messages) {
+      , Map<Object, Collection<Message>> resourceMessages) {
     this.configuration = configuration;
-    this.inputs = inputs;
+    this.resources = inputs;
     this.outputs = outputs;
-    this.includedInputs = includedInputs;
-    this.resourceOutputs = inputOutputs;
+    this.resourceOutputs = resourceOutputs;
     this.outputInputs = outputInputs;
-    this.inputIncludedInputs = inputIncludedInputs;
-    this.requirementInputs = requirementInputs;
-    this.inputRequirements = inputRequirements;
-    this.outputCapabilities = outputCapabilities;
     this.resourceAttributes = resourceAttributes;
-    this.resourceMessages = messages;
+    this.resourceMessages = resourceMessages;
   }
 
   public static DefaultBuildContextState withConfiguration(Map<String, Serializable> configuration) {
@@ -74,13 +64,8 @@ public class DefaultBuildContextState implements Serializable {
     return new DefaultBuildContextState(Collections.<String, Serializable>unmodifiableMap(copy) // configuration
         , new HashMap<Object, ResourceHolder<?>>() // inputs
         , new HashMap<File, ResourceHolder<File>>() // outputs
-        , new HashMap<Object, ResourceHolder<?>>() // includedInputs
         , new HashMap<Object, Collection<File>>() // inputOutputs
         , new HashMap<File, Collection<Object>>() // outputInputs
-        , new HashMap<Object, Collection<Object>>() // inputIncludedInputs
-        , new HashMap<QualifiedName, Collection<Object>>() // requirementInputs
-        , new HashMap<Object, Collection<QualifiedName>>() // inputRequirements
-        , new HashMap<File, Collection<QualifiedName>>() // outputCapabilities
         , new HashMap<Object, Map<String, Serializable>>() // resourceAttributes
         , new HashMap<Object, Collection<Message>>() // messages
     );
@@ -90,13 +75,8 @@ public class DefaultBuildContextState implements Serializable {
     return new DefaultBuildContextState(Collections.<String, Serializable>emptyMap() // configuration
         , Collections.<Object, ResourceHolder<?>>emptyMap() // inputs //
         , Collections.<File, ResourceHolder<File>>emptyMap() // outputs //
-        , Collections.<Object, ResourceHolder<?>>emptyMap() // includedInputs //
         , Collections.<Object, Collection<File>>emptyMap() // inputOutputs //
         , Collections.<File, Collection<Object>>emptyMap() // outputInputs //
-        , Collections.<Object, Collection<Object>>emptyMap() // inputIncludedInputs //
-        , Collections.<QualifiedName, Collection<Object>>emptyMap() // requirementInputs //
-        , Collections.<Object, Collection<QualifiedName>>emptyMap() // inputRequirements //
-        , Collections.<File, Collection<QualifiedName>>emptyMap() // outputCapabilities //
         , Collections.<Object, Map<String, Serializable>>emptyMap() // resourceAttributes //
         , Collections.<Object, Collection<Message>>emptyMap() // messages
     );
@@ -106,15 +86,10 @@ public class DefaultBuildContextState implements Serializable {
     StringBuilder sb = new StringBuilder();
 
     sb.append(configuration.size()).append(' ');
-    sb.append(inputs.size()).append(' ');
-    sb.append(includedInputs.size()).append(' ');
+    sb.append(resources.size()).append(' ');
     sb.append(outputs.size()).append(' ');
     sb.append(resourceOutputs.size()).append(' ');
     sb.append(outputInputs.size()).append(' ');
-    sb.append(inputIncludedInputs.size()).append(' ');
-    sb.append(requirementInputs.size()).append(' ');
-    sb.append(inputRequirements.size()).append(' ');
-    sb.append(outputCapabilities.size()).append(' ');
     sb.append(resourceAttributes.size()).append(' ');
     sb.append(resourceMessages.size()).append(' ');
 
@@ -126,46 +101,15 @@ public class DefaultBuildContextState implements Serializable {
     try {
       writeMap(oos, this.configuration);
       writeMap(oos, this.outputs);
-      writeMap(oos, this.inputs);
-      writeMap(oos, this.includedInputs);
+      writeMap(oos, this.resources);
 
       writeMultimap(oos, resourceOutputs);
-      writeMultimap(oos, inputIncludedInputs);
       writeDoublemap(oos, resourceAttributes);
       writeMultimap(oos, resourceMessages);
 
-      writeCapabilityConsumers(oos, requirementInputs);
-      writeCapabilityProviders(oos, outputCapabilities);
     } finally {
       oos.flush();
     }
-  }
-
-  private void writeCapabilityProviders(ObjectOutputStream oos,
-      Map<File, Collection<QualifiedName>> providers) throws IOException {
-    oos.writeInt(providers.size());
-    for (Map.Entry<File, Collection<QualifiedName>> entry : providers.entrySet()) {
-      oos.writeObject(entry.getKey());
-      Collection<QualifiedName> qnames = entry.getValue();
-      oos.writeInt(qnames.size());
-      for (QualifiedName qname : qnames) {
-        writeQualifiedName(oos, qname);
-      }
-    }
-  }
-
-  private void writeCapabilityConsumers(ObjectOutputStream oos,
-      Map<QualifiedName, Collection<Object>> consumers) throws IOException {
-    oos.writeInt(consumers.size());
-    for (Map.Entry<QualifiedName, Collection<Object>> entry : consumers.entrySet()) {
-      writeQualifiedName(oos, entry.getKey());
-      writeCollection(oos, entry.getValue());
-    }
-  }
-
-  private void writeQualifiedName(ObjectOutputStream oos, QualifiedName qname) throws IOException {
-    oos.writeObject(qname.getQualifier());
-    oos.writeObject(qname.getLocalName());
   }
 
   private static void writeMap(ObjectOutputStream oos, Map<?, ?> map) throws IOException {
@@ -236,30 +180,18 @@ public class DefaultBuildContextState implements Serializable {
 
         Map<String, Serializable> configuration = readMap(is);
         Map<File, ResourceHolder<File>> outputs = readMap(is);
-        Map<Object, ResourceHolder<?>> inputs = readMap(is);
-        Map<Object, ResourceHolder<?>> includedInputs = readMap(is);
+        Map<Object, ResourceHolder<?>> resources = readMap(is);
 
-        Map<Object, Collection<File>> inputOutputs = readMultimap(is);
-        Map<File, Collection<Object>> outputInputs = invertMultimap(inputOutputs);
-        Map<Object, Collection<Object>> inputIncludedInputs = readMultimap(is);
+        Map<Object, Collection<File>> resourceOutputs = readMultimap(is);
+        Map<File, Collection<Object>> outputInputs = invertMultimap(resourceOutputs);
         Map<Object, Map<String, Serializable>> resourceAttributes = readDoublemap(is);
         Map<Object, Collection<Message>> messages = readMultimap(is);
 
-        Map<QualifiedName, Collection<Object>> requirementInputs = readCapabilityConsumers(is);
-        Map<Object, Collection<QualifiedName>> inputRequirements =
-            invertMultimap(requirementInputs);
-        Map<File, Collection<QualifiedName>> outputCapabilities = readCapabilityProviders(is);
-
         DefaultBuildContextState state = new DefaultBuildContextState(configuration //
-            , inputs //
+            , resources //
             , outputs //
-            , includedInputs //
-            , inputOutputs //
+            , resourceOutputs //
             , outputInputs //
-            , inputIncludedInputs //
-            , requirementInputs //
-            , inputRequirements //
-            , outputCapabilities //
             , resourceAttributes //
             , messages //
             );
@@ -283,43 +215,6 @@ public class DefaultBuildContextState implements Serializable {
       log.debug("Could not load incremental build state {}", stateFile, e);
     }
     return DefaultBuildContextState.emptyState();
-  }
-
-
-  private static Map<File, Collection<QualifiedName>> readCapabilityProviders(ObjectInputStream ois)
-      throws ClassNotFoundException, IOException {
-    Map<File, Collection<QualifiedName>> providers = new HashMap<File, Collection<QualifiedName>>();
-    int size = ois.readInt();
-    for (int i = 0; i < size; i++) {
-      File key = (File) ois.readObject();
-      int vsize = ois.readInt();
-      Collection<QualifiedName> value = new ArrayList<QualifiedName>();
-      for (int j = 0; j < vsize; j++) {
-        value.add(readQualifiedName(ois));
-      }
-      providers.put(key, value);
-    }
-    return providers;
-  }
-
-  private static Map<QualifiedName, Collection<Object>> readCapabilityConsumers(
-      ObjectInputStream ois) throws IOException, ClassNotFoundException {
-    Map<QualifiedName, Collection<Object>> result =
-        new HashMap<QualifiedName, Collection<Object>>();
-    int size = ois.readInt();
-    for (int i = 0; i < size; i++) {
-      QualifiedName qname = readQualifiedName(ois);
-      Collection<Object> consumers = readCollection(ois);
-      result.put(qname, consumers);
-    }
-    return result;
-  }
-
-  private static QualifiedName readQualifiedName(ObjectInputStream ois)
-      throws ClassNotFoundException, IOException {
-    String qualified = (String) ois.readObject();
-    String name = (String) ois.readObject();
-    return new QualifiedName(qualified, name);
   }
 
   @SuppressWarnings("unchecked")
