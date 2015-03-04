@@ -34,6 +34,8 @@ public class DefaultResourceTracker implements ResourceTracker {
 
   private final Workspace workspace;
 
+  private final File stateFile;
+
   private final DefaultBuildContextState state;
 
   private final DefaultBuildContextState oldState;
@@ -65,7 +67,7 @@ public class DefaultResourceTracker implements ResourceTracker {
       throw new NullPointerException();
     }
 
-    // this.stateFile = stateFile;
+    this.stateFile = stateFile;
     this.state = DefaultBuildContextState.withConfiguration(configuration);
     this.oldState = DefaultBuildContextState.loadFrom(stateFile);
 
@@ -371,5 +373,70 @@ public class DefaultResourceTracker implements ResourceTracker {
       outputs.add(new DefaultResourceMetadata<File>(this, state, outputFile));
     }
     return outputs;
+  }
+
+  public void persist() throws IOException {
+    // carry over relevant parts of the old state
+    // TODO make this logic customizable
+    Collection<Object> resources = oldState.resources.keySet();
+    while (!resources.isEmpty()) {
+      resources = carryOverResources(resources);
+    }
+
+    if (stateFile != null) {
+      final long start = System.currentTimeMillis();
+      try (OutputStream os = workspace.newOutputStream(stateFile)) {
+        state.storeTo(os);
+      }
+      log.debug("Stored incremental build state {} ({} ms)", stateFile, System.currentTimeMillis()
+          - start);
+    }
+  }
+
+  private Collection<Object> carryOverResources(Collection<Object> resources) {
+    Set<Object> consider = new HashSet<>();
+
+    for (Object resource : resources) {
+      if (processedResources.contains(resource) || deletedResources.contains(resource)) {
+        // known deleted or processed resource, nothing to carry over
+        continue;
+      }
+
+      ResourceHolder<?> holder = state.resources.get(resource);
+
+      if (holder == null) {
+        // removed resource, nothing to carry-over either
+        continue;
+      }
+
+      state.resources.put(resource, holder);
+
+      // carry-over messages
+      Collection<Message> messages = oldState.resourceMessages.get(resource);
+      if (messages != null && !messages.isEmpty()) {
+        state.resourceMessages.put(resource, messages);
+      }
+
+      // carry-over attributes
+      Map<String, Serializable> attributes = oldState.resourceAttributes.get(resource);
+      if (attributes != null && !attributes.isEmpty()) {
+        state.resourceAttributes.put(resource, attributes);
+      }
+
+      Collection<File> outputFiles = oldState.resourceOutputs.get(resource);
+      if (outputFiles != null && !outputFiles.isEmpty()) {
+        state.resourceOutputs.put(resource, outputFiles);
+        // associated up-to-date outputs need to be carried over
+        for (File outputFile : outputFiles) {
+          if (!state.resources.containsKey(outputFile)) {
+            state.resources.put(outputFile, oldState.resources.get(outputFile));
+            state.outputs.add(outputFile);
+            consider.add(outputFile);
+          }
+        }
+      }
+    }
+
+    return consider;
   }
 }

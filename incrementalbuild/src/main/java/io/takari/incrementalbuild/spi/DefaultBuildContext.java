@@ -359,31 +359,31 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     Map<Object, Collection<Message>> newMessages = new HashMap<>(state.resourceMessages);
     Map<Object, Collection<Message>> recordedMessages = new HashMap<>();
 
-    for (Object inputResource : oldState.resources.keySet()) {
-      if (!isRegistered(inputResource)) {
-        clearMessages(inputResource);
+    for (Object resource : oldState.resources.keySet()) {
+      if (!isRegistered(resource)) {
+        clearMessages(resource);
         continue;
       }
-      if (!state.resources.containsKey(inputResource)) {
+      if (!state.resources.containsKey(resource)) {
         // this is possible with delta workspaces
-        state.resources.put(inputResource, oldState.resources.get(inputResource));
+        state.resources.put(resource, oldState.resources.get(resource));
       }
-      if (!processedInputs.containsKey(inputResource)) {
+      if (!processedInputs.containsKey(resource)) {
         // copy associated outputs
-        Collection<File> associatedOutputs = oldState.resourceOutputs.get(inputResource);
+        Collection<File> associatedOutputs = oldState.resourceOutputs.get(resource);
         if (associatedOutputs != null) {
           for (File outputFile : associatedOutputs) {
             if (!processedOutputs.containsKey(outputFile)) {
-              carryOverOutput(inputResource, outputFile);
+              carryOverOutput(resource, outputFile);
               carryOverMessages(outputFile, recordedMessages);
             }
           }
         }
 
         // copy associated included inputs
-        Collection<Object> includedInputs = oldState.inputIncludedInputs.get(inputResource);
+        Collection<Object> includedInputs = oldState.inputIncludedInputs.get(resource);
         if (includedInputs != null) {
-          state.inputIncludedInputs.put(inputResource, new LinkedHashSet<Object>(includedInputs));
+          state.inputIncludedInputs.put(resource, new LinkedHashSet<Object>(includedInputs));
 
           for (Object includedInput : includedInputs) {
             ResourceHolder<?> oldHolder = oldState.includedInputs.get(includedInput);
@@ -392,12 +392,12 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
         }
 
         // copy messages
-        carryOverMessages(inputResource, recordedMessages);
+        carryOverMessages(resource, recordedMessages);
 
         // copy attributes
-        Map<String, Serializable> attributes = oldState.resourceAttributes.get(inputResource);
+        Map<String, Serializable> attributes = oldState.resourceAttributes.get(resource);
         if (attributes != null) {
-          state.resourceAttributes.put(inputResource, attributes);
+          state.resourceAttributes.put(resource, attributes);
         }
       }
     }
