@@ -15,7 +15,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +31,7 @@ public class DefaultBuildContextState implements Serializable {
 
   final Map<String, Serializable> configuration;
 
-  final Map<File, ResourceHolder<File>> outputs;
+  final Set<File> outputs;
 
   final Map<Object, ResourceHolder<?>> resources;
 
@@ -43,7 +45,7 @@ public class DefaultBuildContextState implements Serializable {
 
   private DefaultBuildContextState(Map<String, Serializable> configuration //
       , Map<Object, ResourceHolder<?>> inputs //
-      , Map<File, ResourceHolder<File>> outputs //
+      , Set<File> outputs //
       , Map<Object, Collection<File>> resourceOutputs //
       , Map<File, Collection<Object>> outputInputs //
       , Map<Object, Map<String, Serializable>> resourceAttributes //
@@ -63,7 +65,7 @@ public class DefaultBuildContextState implements Serializable {
     copy.put("incremental", Boolean.TRUE);
     return new DefaultBuildContextState(Collections.<String, Serializable>unmodifiableMap(copy) // configuration
         , new HashMap<Object, ResourceHolder<?>>() // inputs
-        , new HashMap<File, ResourceHolder<File>>() // outputs
+        , new HashSet<File>() // outputs
         , new HashMap<Object, Collection<File>>() // inputOutputs
         , new HashMap<File, Collection<Object>>() // outputInputs
         , new HashMap<Object, Map<String, Serializable>>() // resourceAttributes
@@ -74,7 +76,7 @@ public class DefaultBuildContextState implements Serializable {
   public static DefaultBuildContextState emptyState() {
     return new DefaultBuildContextState(Collections.<String, Serializable>emptyMap() // configuration
         , Collections.<Object, ResourceHolder<?>>emptyMap() // inputs //
-        , Collections.<File, ResourceHolder<File>>emptyMap() // outputs //
+        , Collections.<File>emptySet() // outputs //
         , Collections.<Object, Collection<File>>emptyMap() // inputOutputs //
         , Collections.<File, Collection<Object>>emptyMap() // outputInputs //
         , Collections.<Object, Map<String, Serializable>>emptyMap() // resourceAttributes //
@@ -100,7 +102,7 @@ public class DefaultBuildContextState implements Serializable {
     ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(os));
     try {
       writeMap(oos, this.configuration);
-      writeMap(oos, this.outputs);
+      writeCollection(oos, this.outputs);
       writeMap(oos, this.resources);
 
       writeMultimap(oos, resourceOutputs);
@@ -179,7 +181,7 @@ public class DefaultBuildContextState implements Serializable {
         final long start = System.currentTimeMillis();
 
         Map<String, Serializable> configuration = readMap(is);
-        Map<File, ResourceHolder<File>> outputs = readMap(is);
+        Set<File> outputs = new HashSet<>(DefaultBuildContextState.<File>readCollection(is));
         Map<Object, ResourceHolder<?>> resources = readMap(is);
 
         Map<Object, Collection<File>> resourceOutputs = readMultimap(is);

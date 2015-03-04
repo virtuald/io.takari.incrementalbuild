@@ -259,6 +259,7 @@ public class DefaultResourceTracker implements ResourceTracker {
 
     registerNormalizedResource(outputFile, outputFile.lastModified(), outputFile.length(), true);
     processResource(outputFile);
+    state.outputs.add(outputFile);
 
     return new DefaultOutput(this, state, outputFile);
   }
