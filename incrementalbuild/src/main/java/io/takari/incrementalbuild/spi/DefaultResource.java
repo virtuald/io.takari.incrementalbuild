@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 public class DefaultResource<T> extends DefaultResourceMetadata<T> implements Resource<T> {
 
-  DefaultResource(DefaultBuildContext<?> context, DefaultBuildContextState state, T resource) {
+  DefaultResource(ResourceTracker context, DefaultBuildContextState state, T resource) {
     super(context, state, resource);
   }
 

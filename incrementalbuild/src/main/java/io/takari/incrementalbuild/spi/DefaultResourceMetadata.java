@@ -5,19 +5,20 @@ import io.takari.incrementalbuild.BuildContext.ResourceStatus;
 
 import java.io.File;
 import java.io.Serializable;
+import java.util.Collection;
 
 /**
  * @noinstantiate clients are not expected to instantiate this class
  */
 public class DefaultResourceMetadata<T> implements ResourceMetadata<T> {
 
-  final DefaultBuildContext<?> context;
+  final ResourceTracker context;
 
   final DefaultBuildContextState state;
 
   final T resource;
 
-  DefaultResourceMetadata(DefaultBuildContext<?> context, DefaultBuildContextState state, T resource) {
+  DefaultResourceMetadata(ResourceTracker context, DefaultBuildContextState state, T resource) {
     this.context = context;
     this.state = state;
     this.resource = resource;
@@ -29,18 +30,18 @@ public class DefaultResourceMetadata<T> implements ResourceMetadata<T> {
   }
 
   @Override
-  public Iterable<? extends ResourceMetadata<File>> getAssociatedOutputs() {
+  public Collection<? extends ResourceMetadata<File>> getAssociatedOutputs() {
     return context.getAssociatedOutputs(state, resource);
   }
 
   @Override
   public ResourceStatus getStatus() {
-    return context.getResourceStatus(resource, true /* associated */);
+    return context.getResourceStatus(resource);
   }
 
   @Override
   public <V extends Serializable> V getAttribute(String key, Class<V> clazz) {
-    return context.getResourceAttribute(resource, key, true /* previous */, clazz);
+    return context.getResourceAttribute(state, resource, key, clazz);
   }
 
   @Override
