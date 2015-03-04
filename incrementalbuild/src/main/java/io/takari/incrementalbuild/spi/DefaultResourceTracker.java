@@ -19,9 +19,9 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
-
-import javax.inject.Named;
+import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +29,6 @@ import org.slf4j.LoggerFactory;
 /**
  * Tracks build input and output resources and associations among them.
  */
-@Named
 public class DefaultResourceTracker implements ResourceTracker {
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -55,9 +54,86 @@ public class DefaultResourceTracker implements ResourceTracker {
    */
   private final Set<Object> processedResources = new HashSet<>();
 
-  public DefaultResourceTracker(Workspace workspace) {
-    this.workspace = workspace;
+  public DefaultResourceTracker(Workspace workspace, File stateFile,
+      Map<String, Serializable> configuration) {
+
+    // preconditions
+    if (workspace == null) {
+      throw new NullPointerException();
+    }
+    if (configuration == null) {
+      throw new NullPointerException();
+    }
+
+    // this.stateFile = stateFile;
+    this.state = DefaultBuildContextState.withConfiguration(configuration);
+    this.oldState = DefaultBuildContextState.loadFrom(stateFile);
+
+    final boolean configurationChanged = getConfigurationChanged();
+    if (workspace.getMode() == Mode.ESCALATED) {
+      this.escalated = true;
+      this.workspace = workspace;
+    } else if (workspace.getMode() == Mode.SUPPRESSED) {
+      this.escalated = false;
+      this.workspace = workspace;
+    } else if (configurationChanged) {
+      this.escalated = true;
+      this.workspace = workspace.escalate();
+    } else {
+      this.escalated = false;
+      this.workspace = workspace;
+    }
+
+    if (escalated && stateFile != null) {
+      if (!stateFile.canRead()) {
+        log.info("Previous incremental build state does not exist, performing full build");
+      } else {
+        log.info("Incremental build configuration change detected, performing full build");
+      }
+    } else {
+      log.info("Performing incremental build");
+    }
   }
+
+  private boolean getConfigurationChanged() {
+    Map<String, Serializable> configuration = state.configuration;
+    Map<String, Serializable> oldConfiguration = oldState.configuration;
+
+    if (oldConfiguration.isEmpty()) {
+      return true; // no previous state
+    }
+
+    Set<String> keys = new TreeSet<String>();
+    keys.addAll(configuration.keySet());
+    keys.addAll(oldConfiguration.keySet());
+
+    boolean result = false;
+    StringBuilder msg = new StringBuilder();
+
+    for (String key : keys) {
+      Serializable value = configuration.get(key);
+      Serializable oldValue = oldConfiguration.get(key);
+      if (!Objects.equals(oldValue, value)) {
+        result = true;
+        msg.append("\n   ");
+        if (value == null) {
+          msg.append("REMOVED");
+        } else if (oldValue == null) {
+          msg.append("ADDED");
+        } else {
+          msg.append("CHANGED");
+        }
+        msg.append(' ').append(key);
+      }
+    }
+
+    if (result) {
+      log.debug("Incremental build configuration key changes:{}", msg.toString());
+    }
+
+    return result;
+  }
+
 
   /**
    * Registers matching resources as this build's input set.

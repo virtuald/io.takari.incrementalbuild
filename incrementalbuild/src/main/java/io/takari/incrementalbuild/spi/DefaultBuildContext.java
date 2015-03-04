@@ -14,13 +14,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,21 +31,9 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
-  protected final File stateFile;
-
-  private final Workspace workspace;
+  private final DefaultResourceTracker tracker;
 
   private final MessageSink messageSink;
-
-  private final DefaultBuildContextState state;
-
-  private final DefaultBuildContextState oldState;
-
-  /**
-   * Previous build state does not exist, cannot be read or configuration has changed. When
-   * escalated, all input files are considered require processing.
-   */
-  private final boolean escalated;
 
   /**
    * Indicates that no further modifications to this build context are allowed. When context is
@@ -57,108 +42,13 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
    */
   private boolean closed;
 
-  /**
-   * Inputs selected for processing during this build.
-   */
-  private final Map<Object, DefaultResource<?>> processedInputs =
-      new HashMap<Object, DefaultResource<?>>();
-
-  /**
-   * Outputs registered with this build context during this build.
-   */
-  private final Set<File> uptodateOutputs = new HashSet<File>();
-
-  /**
-   * Outputs processed by this build context during this build.
-   */
-  private final Map<File, DefaultOutput> processedOutputs = new HashMap<File, DefaultOutput>();
-
-  private final Set<File> deletedInputs = new HashSet<File>();
-
-  private final Set<File> deletedOutputs = new HashSet<File>();
 
   public DefaultBuildContext(Workspace workspace, MessageSink messageSink, File stateFile,
       Map<String, Serializable> configuration) {
-    // preconditions
-    if (workspace == null) {
-      throw new NullPointerException();
-    }
-    if (configuration == null) {
-      throw new NullPointerException();
-    }
 
-    this.stateFile = stateFile;
-    this.state = DefaultBuildContextState.withConfiguration(configuration);
-    this.oldState = DefaultBuildContextState.loadFrom(stateFile);
+    this.tracker = new DefaultResourceTracker(workspace, stateFile, configuration);
+
     this.messageSink = messageSink;
-
-    final boolean configurationChanged = getConfigurationChanged();
-    if (workspace.getMode() == Mode.ESCALATED) {
-      this.escalated = true;
-      this.workspace = workspace;
-    } else if (workspace.getMode() == Mode.SUPPRESSED) {
-      this.escalated = false;
-      this.workspace = workspace;
-    } else if (configurationChanged) {
-      this.escalated = true;
-      this.workspace = workspace.escalate();
-    } else {
-      this.escalated = false;
-      this.workspace = workspace;
-    }
-
-    if (escalated && stateFile != null) {
-      if (!stateFile.canRead()) {
-        log.info("Previous incremental build state does not exist, performing full build");
-      } else {
-        log.info("Incremental build configuration change detected, performing full build");
-      }
-    } else {
-      log.info("Performing incremental build");
-    }
-  }
-
-  private boolean getConfigurationChanged() {
-    Map<String, Serializable> configuration = state.configuration;
-    Map<String, Serializable> oldConfiguration = oldState.configuration;
-
-    if (oldConfiguration.isEmpty()) {
-      return true; // no previous state
-    }
-
-    Set<String> keys = new TreeSet<String>();
-    keys.addAll(configuration.keySet());
-    keys.addAll(oldConfiguration.keySet());
-
-    boolean result = false;
-    StringBuilder msg = new StringBuilder();
-
-    for (String key : keys) {
-      Serializable value = configuration.get(key);
-      Serializable oldValue = oldConfiguration.get(key);
-      if (!equals(oldValue, value)) {
-        result = true;
-        msg.append("\n   ");
-        if (value == null) {
-          msg.append("REMOVED");
-        } else if (oldValue == null) {
-          msg.append("ADDED");
-        } else {
-          msg.append("CHANGED");
-        }
-        msg.append(' ').append(key);
-      }
-    }
-
-    if (result) {
-      log.debug("Incremental build configuration key changes:{}", msg.toString());
-    }
-
-    return result;
-  }
-
-  private static boolean equals(Serializable a, Serializable b) {
-    return a != null ? a.equals(b) : b == null;
   }
 
   public boolean isEscalated() {
@@ -377,40 +267,11 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     workspace.deleteFile(outputFile);
   }
 
-  private static <K, V> void put(Map<K, Collection<V>> multimap, K key, V value) {
-    Collection<V> values = multimap.get(key);
-    if (values == null) {
-      values = new LinkedHashSet<V>();
-      multimap.put(key, values);
-    }
-    values.add(value);
-  }
-
-  private static <K, V> void putAll(Map<K, Collection<V>> multimap, K key, Collection<V> value) {
-    Collection<V> values = multimap.get(key);
-    if (values == null) {
-      values = new LinkedHashSet<V>();
-      multimap.put(key, values);
-    }
-    values.addAll(value);
-  }
-
   @Override
   public DefaultOutput processOutput(File outputFile) {
     assertOpen();
 
-    outputFile = normalize(outputFile);
-
-    DefaultOutput output = processedOutputs.get(outputFile);
-    if (output == null) {
-      output = new DefaultOutput(this, state, outputFile);
-      processedOutputs.put(outputFile, output);
-
-      workspace.processOutput(outputFile);
-      clearMessages(output);
-    }
-
-    return output;
+    return tracker.processOutput(outputFile);
   }
 
   /**
@@ -448,115 +309,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     uptodateOutputs.add(outputFile);
   }
 
-  public DefaultResource<File> processIncludedInput(File inputFile) {
-    inputFile = normalize(inputFile);
-
-    if (state.includedInputs.containsKey(inputFile)) {
-      return new DefaultResource<File>(this, state, inputFile);
-    }
-
-    File file = registerInput(state.includedInputs, newFileState(inputFile));
-
-    return new DefaultResource<File>(this, state, file);
-  }
-
-  public ResourceStatus getResourceStatus(Object inputResource, boolean associated) {
-    if (!isRegistered(inputResource)) {
-      if (oldState.resources.containsKey(inputResource)) {
-        return ResourceStatus.REMOVED;
-      }
-      throw new IllegalArgumentException("Unregistered input file " + inputResource);
-    }
-
-    ResourceHolder<?> oldInputState = oldState.resources.get(inputResource);
-    if (oldInputState == null) {
-      return ResourceStatus.NEW;
-    }
-
-    if (escalated) {
-      return ResourceStatus.MODIFIED;
-    }
-
-    ResourceStatus status = getResourceStatus(oldInputState);
-
-    if (status != ResourceStatus.UNMODIFIED) {
-      return status;
-    }
-
-    if (associated) {
-      Collection<Object> includedInputs = oldState.inputIncludedInputs.get(inputResource);
-      if (includedInputs != null) {
-        for (Object includedInput : includedInputs) {
-          ResourceHolder<?> includedInputState = oldState.includedInputs.get(includedInput);
-          if (getResourceStatus(includedInputState) != ResourceStatus.UNMODIFIED) {
-            return ResourceStatus.MODIFIED;
-          }
-        }
-      }
-
-      Collection<File> outputFiles = oldState.resourceOutputs.get(inputResource);
-      if (outputFiles != null) {
-        for (File outputFile : outputFiles) {
-          ResourceHolder<File> outputState = oldState.outputs.get(outputFile);
-          if (getResourceStatus(outputState) != ResourceStatus.UNMODIFIED) {
-            return ResourceStatus.MODIFIED;
-          }
-        }
-      }
-    }
-
-    return ResourceStatus.UNMODIFIED;
-  }
-
-  private ResourceStatus getResourceStatus(ResourceHolder<?> holder) {
-    if (holder instanceof FileState) {
-      FileState fileState = (FileState) holder;
-      switch (workspace.getResourceStatus(fileState.file, fileState.lastModified, fileState.length)) {
-        case NEW:
-          return ResourceStatus.NEW;
-        case MODIFIED:
-          return ResourceStatus.MODIFIED;
-        case REMOVED:
-          return ResourceStatus.REMOVED;
-        case UNMODIFIED:
-          return ResourceStatus.UNMODIFIED;
-      }
-      throw new IllegalArgumentException();
-    }
-    return holder.getStatus();
-  }
-
-  public ResourceStatus getOutputStatus(File outputFile) {
-    ResourceHolder<File> oldOutputState = oldState.outputs.get(outputFile);
-
-    if (oldOutputState == null) {
-      return ResourceStatus.NEW;
-    }
-
-    ResourceStatus status = getResourceStatus(oldOutputState);
-
-    if (escalated && status == ResourceStatus.UNMODIFIED) {
-      status = ResourceStatus.MODIFIED;
-    }
-
-    return status;
-  }
-
   @Override
   public DefaultResourceMetadata<File> registerInput(File inputFile) {
     inputFile = normalize(inputFile);
     return registerNormalizedInput(inputFile, inputFile.lastModified(), inputFile.length());
-  }
-
-  private DefaultResourceMetadata<File> registerNormalizedInput(File inputFile, long lastModified,
-      long length) {
-
-    if (state.resources.containsKey(inputFile)) {
-      // performance shortcut, avoids IO during new FileState
-      return new DefaultResourceMetadata<File>(this, oldState, inputFile);
-    }
-
-    return registerInput(newFileState(inputFile, lastModified, length));
   }
 
   public <T extends Serializable> DefaultResourceMetadata<T> registerInput(ResourceHolder<T> holder) {
@@ -566,29 +322,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     // each instance is a stateless flyweight.
 
     return new DefaultResourceMetadata<T>(this, oldState, resource);
-  }
-
-  private <T extends Serializable> T registerInput(Map<Object, ResourceHolder<?>> inputs,
-      ResourceHolder<T> holder) {
-    assertOpen();
-
-    T resource = holder.getResource();
-
-    ResourceHolder<?> other = inputs.get(resource);
-
-    if (other == null) {
-      if (getResourceStatus(holder) == ResourceStatus.REMOVED) {
-        throw new IllegalArgumentException("Input does not exist " + resource);
-      }
-
-      inputs.put(resource, holder);
-    } else {
-      if (!holder.equals(other)) {
-        throw new IllegalArgumentException("Inconsistent input state " + resource);
-      }
-    }
-
-    return resource;
   }
 
   public Iterable<DefaultResourceMetadata<File>> registerInputs(Iterable<File> inputs) {
@@ -602,43 +335,9 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   @Override
   public Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
-    basedir = normalize(basedir);
-    final List<DefaultResourceMetadata<File>> result = new ArrayList<>();
-    final FileMatcher matcher = FileMatcher.matcher(basedir, includes, excludes);
-    workspace.walk(basedir, new FileVisitor() {
-      @Override
-      public void visit(File file, long lastModified, long length, Workspace.ResourceStatus status) {
-        if (matcher.matches(file)) {
-          switch (status) {
-            case MODIFIED:
-            case NEW:
-              result.add(registerNormalizedInput(file, lastModified, length));
-              break;
-            case REMOVED:
-              deletedInputs.add(file);
-              break;
-            default:
-              throw new IllegalArgumentException();
-          }
-        }
-      }
-    });
-    if (workspace.getMode() == Mode.DELTA) {
-      // only NEW, MODIFIED and REMOVED resources are reported in DELTA mode
-      // need to find any UNMODIFIED
-      final FileMatcher absoluteMatcher = FileMatcher.matcher(basedir, includes, excludes);
-      for (Object resource : oldState.resources.keySet()) {
-        if (resource instanceof File) {
-          File file = (File) resource;
-          if (!state.resources.containsKey(file) && !deletedInputs.contains(file)
-              && absoluteMatcher.matches(file)) {
-            // TODO carry-over FileState
-            result.add(registerInput(file));
-          }
-        }
-      }
-    }
-    return result;
+    assertOpen();
+
+    return tracker.registerInputs(basedir, includes, excludes);
   }
 
   @Override
@@ -657,17 +356,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       }
     }
     return result;
-  }
-
-  private <T> void addRegisteredInput(Set<DefaultResourceMetadata<T>> result, Class<T> clazz,
-      Object inputResource) {
-    if (clazz.isInstance(inputResource)) {
-      DefaultResourceMetadata<T> input = getProcessedInput(clazz.cast(inputResource));
-      if (input == null) {
-        input = new DefaultResourceMetadata<T>(this, state, clazz.cast(inputResource));
-      }
-      result.add(input);
-    }
   }
 
   public <T> Set<DefaultResourceMetadata<T>> getRemovedInputs(Class<T> clazz) {
@@ -719,34 +407,10 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return output;
   }
 
-  private File normalize(File file) {
-    if (file == null) {
-      throw new IllegalArgumentException();
-    }
-    try {
-      return file.getCanonicalFile();
-    } catch (IOException e) {
-      log.debug("Could not normalize file {}", file, e);
-      return file.getAbsoluteFile();
-    }
-  }
-
   // association management
 
-  public void associate(DefaultResourceMetadata<?> input, DefaultOutput output) {
-    associateOutput(input.getResource(), output);
-  }
-
-  public void associateOutput(Object resource, DefaultOutput output) {
-    File outputFile = output.getResource();
-    if (!processedInputs.containsKey(resource) && !processedOutputs.containsKey(resource)) {
-      if (!contains(oldState.resourceOutputs.get(resource), outputFile)
-          || !contains(oldState.outputInputs.get(outputFile), resource)) {
-        throw new IllegalArgumentException();
-      }
-    }
-    put(state.resourceOutputs, resource, outputFile);
-    put(state.outputInputs, outputFile, resource);
+  public void associate(DefaultResource<?> resource, DefaultOutput output) {
+    tracker.associate(resource, output);
   }
 
   private static <T> boolean contains(Collection<T> collection, T member) {
@@ -773,75 +437,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     return inputs;
   }
 
-  OutputStream newOutputStream(DefaultOutput output) throws IOException {
-    return workspace.newOutputStream(output.getResource());
-  }
-
-  public Iterable<DefaultOutput> getAssociatedOutputs(File resource) {
-    Collection<File> outputFiles = state.resourceOutputs.get(resource);
-    if (outputFiles == null || outputFiles.isEmpty()) {
-      return Collections.emptyList();
-    }
-    List<DefaultOutput> outputs = new ArrayList<DefaultOutput>();
-    for (File outputFile : outputFiles) {
-      outputs.add(this.processedOutputs.get(outputFile));
-    }
-    return outputs;
-  }
-
-  Iterable<DefaultOutputMetadata> getAssociatedOutputs(DefaultBuildContextState state,
-      Object resource) {
-    Collection<File> outputFiles = state.resourceOutputs.get(resource);
-    if (outputFiles == null || outputFiles.isEmpty()) {
-      return Collections.emptyList();
-    }
-    List<DefaultOutputMetadata> outputs = new ArrayList<DefaultOutputMetadata>();
-    for (File outputFile : outputFiles) {
-      outputs.add(new DefaultOutputMetadata(this, state, outputFile));
-    }
-    return outputs;
-  }
-
-  public void associateIncludedInput(DefaultResource<?> input, DefaultResource<File> included) {
-    put(state.inputIncludedInputs, input.getResource(), included.getResource());
-  }
-
-  // simple key/value pairs
-
-  public <T extends Serializable> Serializable setResourceAttribute(Object resource, String key,
-      T value) {
-    Map<String, Serializable> attributes = state.resourceAttributes.get(resource);
-    if (attributes == null) {
-      attributes = new LinkedHashMap<String, Serializable>();
-      state.resourceAttributes.put(resource, attributes);
-    }
-    attributes.put(key, value);
-    Map<String, Serializable> oldAttributes = oldState.resourceAttributes.get(resource);
-    return oldAttributes != null ? (Serializable) oldAttributes.get(key) : null;
-  }
-
-  public <T extends Serializable> T getResourceAttribute(Object resource, String key,
-      boolean previous, Class<T> clazz) {
-    Map<String, Serializable> attributes =
-        (previous ? oldState : state).resourceAttributes.get(resource);
-    return attributes != null ? clazz.cast(attributes.get(key)) : null;
-  }
-
   // messages
-
-  public void addMessage(Object resource, int line, int column, String message, Severity severity,
-      Throwable cause) {
-    // this is likely called as part of builder error handling logic.
-    // to make IAE easier to troubleshoot, link cause to the exception thrown
-    if (resource == null) {
-      throw new IllegalArgumentException(cause);
-    }
-    if (severity == null) {
-      throw new IllegalArgumentException(cause);
-    }
-    put(state.resourceMessages, resource, new Message(line, column, message, severity, cause));
-    log(resource, line, column, message, severity, cause);
-  }
 
   protected void log(Object resource, int line, int column, String message, Severity severity,
       Throwable cause) {
@@ -992,12 +588,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     }
   }
 
-  private void clearMessages(Object resource) {
-    if (messageSink != null) {
-      messageSink.clearMessages(resource);
-    }
-  }
-
   private MessageSink.Severity toMessageSinkSeverity(Severity severity) {
     switch (severity) {
       case ERROR:
@@ -1009,17 +599,6 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       default:
         throw new IllegalArgumentException();
     }
-  }
-
-  private FileState newFileState(File file) {
-    return newFileState(file, file.lastModified(), file.length());
-  }
-
-  private FileState newFileState(File file, long lastModified, long length) {
-    if (!workspace.isPresent(file)) {
-      throw new IllegalArgumentException("File does not exist or cannot be read " + file);
-    }
-    return new FileState(file, lastModified, length);
   }
 
   private void carryOverMessages(Object resource, Map<Object, Collection<Message>> recordedMessages) {
