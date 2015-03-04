@@ -28,5 +28,7 @@ interface ResourceTracker {
   void addMessage(Object resource, int line, int column, String message, Severity severity,
       Throwable cause);
 
+  DefaultOutput processOutput(File outputFile);
+
   OutputStream newOutputStream(DefaultOutput output) throws IOException;
 }

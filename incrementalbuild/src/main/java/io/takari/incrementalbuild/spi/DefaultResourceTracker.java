@@ -13,7 +13,6 @@ import java.io.OutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,7 +51,7 @@ public class DefaultResourceTracker implements ResourceTracker {
   /**
    * Resources selected for processing during this build.
    */
-  private final Map<Object, DefaultResource<?>> processedResources = new HashMap<>();
+  private final Set<Object> processedResources = new HashSet<>();
 
   public DefaultResourceTracker(Workspace workspace) {
     this.workspace = workspace;
@@ -73,7 +72,7 @@ public class DefaultResourceTracker implements ResourceTracker {
           switch (status) {
             case MODIFIED:
             case NEW:
-              result.add(registerNormalizedInput(file, lastModified, length));
+              result.add(registerNormalizedResource(file, lastModified, length, false));
               break;
             case REMOVED:
               deletedResources.add(file);
@@ -94,8 +93,8 @@ public class DefaultResourceTracker implements ResourceTracker {
           if (!state.resources.containsKey(fileState.file)
               && !deletedResources.contains(fileState.file)
               && absoluteMatcher.matches(fileState.file)) {
-            result.add(registerNormalizedInput(fileState.file, fileState.lastModified,
-                fileState.length));
+            result.add(registerNormalizedResource(fileState.file, fileState.lastModified,
+                fileState.length, false));
           }
         }
       }
@@ -114,12 +113,12 @@ public class DefaultResourceTracker implements ResourceTracker {
     }
   }
 
-  private DefaultResourceMetadata<File> registerNormalizedInput(File inputFile, long lastModified,
-      long length) {
-    if (!state.resources.containsKey(inputFile)) {
-      registerInput(newFileState(inputFile, lastModified, length));
+  private DefaultResourceMetadata<File> registerNormalizedResource(File resourceFile,
+      long lastModified, long length, boolean replace) {
+    if (!state.resources.containsKey(resourceFile)) {
+      registerResource(newFileState(resourceFile, lastModified, length), replace);
     }
-    return new DefaultResourceMetadata<File>(this, oldState, inputFile);
+    return new DefaultResourceMetadata<File>(this, oldState, resourceFile);
   }
 
   private FileState newFileState(File file, long lastModified, long length) {
@@ -129,17 +128,24 @@ public class DefaultResourceTracker implements ResourceTracker {
     return new FileState(file, lastModified, length);
   }
 
-  private <T extends Serializable> T registerInput(ResourceHolder<T> holder) {
+  /**
+   * Adds the resource to this build's resource set. The resource must exist, i.e. it's status must
+   * not be REMOVED.
+   */
+  private <T extends Serializable> T registerResource(ResourceHolder<T> holder, boolean replace) {
     T resource = holder.getResource();
     ResourceHolder<?> other = state.resources.get(resource);
     if (other == null) {
       if (getResourceStatus(holder) == ResourceStatus.REMOVED) {
-        throw new IllegalArgumentException("Input does not exist " + resource);
+        throw new IllegalArgumentException("Resource does not exist " + resource);
       }
       state.resources.put(resource, holder);
     } else {
       if (!holder.equals(other)) {
-        throw new IllegalArgumentException("Inconsistent input state " + resource);
+        if (!replace) {
+          throw new IllegalArgumentException("Inconsistent resource state " + resource);
+        }
+        state.resources.put(resource, holder);
       }
     }
     return resource;
@@ -196,19 +202,17 @@ public class DefaultResourceTracker implements ResourceTracker {
       return (DefaultResource<T>) metadata;
     }
 
-    @SuppressWarnings("unchecked")
-    DefaultResource<T> processed = (DefaultResource<T>) processedResources.get(resource);
-    if (processed == null) {
-      processed = new DefaultResource<T>(this, state, resource);
-      processedResources.put(resource, processed);
-    }
+    processResource(resource);
 
+    return new DefaultResource<T>(this, state, resource);
+  }
+
+  private <T> void processResource(final T resource) {
+    processedResources.add(resource);
     // reset all metadata associated with the resource during this build
     state.resourceAttributes.remove(resource);
     state.resourceMessages.remove(resource);
     state.resourceOutputs.remove(resource);
-
-    return processed;
   }
 
   // simple key/value pairs
@@ -247,6 +251,16 @@ public class DefaultResourceTracker implements ResourceTracker {
       throw new IllegalArgumentException(cause);
     }
     put(state.resourceMessages, resource, new Message(line, column, message, severity, cause));
+  }
+
+  @Override
+  public DefaultOutput processOutput(File outputFile) {
+    outputFile = normalize(outputFile);
+
+    registerNormalizedResource(outputFile, outputFile.lastModified(), outputFile.length(), true);
+    processResource(outputFile);
+
+    return new DefaultOutput(this, state, outputFile);
   }
 
   @Override
