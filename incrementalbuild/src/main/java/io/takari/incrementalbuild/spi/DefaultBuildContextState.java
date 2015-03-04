@@ -229,7 +229,7 @@ public class DefaultBuildContextState implements Serializable {
       V value = (V) ois.readObject();
       map.put(key, value);
     }
-    return map;
+    return Collections.unmodifiableMap(map);
   }
 
   @SuppressWarnings("unchecked")
@@ -242,7 +242,7 @@ public class DefaultBuildContextState implements Serializable {
       Collection<V> value = readCollection(ois);
       mmap.put(key, value);
     }
-    return mmap;
+    return Collections.unmodifiableMap(mmap);
   }
 
   @SuppressWarnings("unchecked")
@@ -256,7 +256,7 @@ public class DefaultBuildContextState implements Serializable {
     for (int i = 0; i < size; i++) {
       collection.add((V) ois.readObject());
     }
-    return collection;
+    return Collections.unmodifiableCollection(collection);
   }
 
   @SuppressWarnings("unchecked")
@@ -269,7 +269,7 @@ public class DefaultBuildContextState implements Serializable {
       Map<VK, VV> value = readMap(ois);
       dmap.put(key, value);
     }
-    return dmap;
+    return Collections.unmodifiableMap(dmap);
   }
 
   private static <K, V> Map<V, Collection<K>> invertMultimap(Map<K, Collection<V>> mmap) {
@@ -284,6 +284,6 @@ public class DefaultBuildContextState implements Serializable {
         keys.add(entry.getKey());
       }
     }
-    return inverted;
+    return Collections.unmodifiableMap(inverted);
   }
 }
