@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Tracks build input and output resources and associations among them.
  */
-public class DefaultResourceTracker implements ResourceTracker {
+public class AbstractBuildContext {
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
   private final Workspace workspace;
@@ -56,7 +56,7 @@ public class DefaultResourceTracker implements ResourceTracker {
    */
   private final Set<Object> processedResources = new HashSet<>();
 
-  public DefaultResourceTracker(Workspace workspace, File stateFile,
+  public AbstractBuildContext(Workspace workspace, File stateFile,
       Map<String, Serializable> configuration) {
 
     // preconditions
@@ -234,7 +234,6 @@ public class DefaultResourceTracker implements ResourceTracker {
   /**
    * Returns resource status compared to the previous build.
    */
-  @Override
   public ResourceStatus getResourceStatus(Object resource) {
     if (deletedResources.contains(resource)) {
       return ResourceStatus.REMOVED;
@@ -270,7 +269,6 @@ public class DefaultResourceTracker implements ResourceTracker {
     return holder.getStatus();
   }
 
-  @Override
   public <T> DefaultResource<T> processResource(DefaultResourceMetadata<T> metadata) {
     final T resource = metadata.getResource();
 
@@ -297,7 +295,6 @@ public class DefaultResourceTracker implements ResourceTracker {
 
   // simple key/value pairs
 
-  @Override
   public <T extends Serializable> Serializable setResourceAttribute(Object resource, String key,
       T value) {
     Map<String, Serializable> attributes = state.resourceAttributes.get(resource);
@@ -310,7 +307,6 @@ public class DefaultResourceTracker implements ResourceTracker {
     return oldAttributes != null ? (Serializable) oldAttributes.get(key) : null;
   }
 
-  @Override
   public <T extends Serializable> T getResourceAttribute(DefaultBuildContextState state,
       Object resource, String key, Class<T> clazz) {
     Map<String, Serializable> attributes = state.resourceAttributes.get(resource);
@@ -319,7 +315,6 @@ public class DefaultResourceTracker implements ResourceTracker {
 
   // persisted messages
 
-  @Override
   public void addMessage(Object resource, int line, int column, String message, Severity severity,
       Throwable cause) {
     // this is likely called as part of builder error handling logic.
@@ -333,7 +328,6 @@ public class DefaultResourceTracker implements ResourceTracker {
     put(state.resourceMessages, resource, new Message(line, column, message, severity, cause));
   }
 
-  @Override
   public DefaultOutput processOutput(File outputFile) {
     outputFile = normalize(outputFile);
 
@@ -344,12 +338,10 @@ public class DefaultResourceTracker implements ResourceTracker {
     return new DefaultOutput(this, state, outputFile);
   }
 
-  @Override
   public OutputStream newOutputStream(DefaultOutput output) throws IOException {
     return workspace.newOutputStream(output.getResource());
   }
 
-  @Override
   public <T> void associate(DefaultResource<T> resource, DefaultOutput output) {
     if (resource.context != this) {
       throw new IllegalArgumentException();
@@ -361,7 +353,6 @@ public class DefaultResourceTracker implements ResourceTracker {
     put(state.resourceOutputs, resource.getResource(), output.getResource());
   }
 
-  @Override
   public Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(
       DefaultBuildContextState state, Object resource) {
     Collection<File> outputFiles = state.resourceOutputs.get(resource);
@@ -376,11 +367,17 @@ public class DefaultResourceTracker implements ResourceTracker {
   }
 
   public void persist() throws IOException {
-    // carry over relevant parts of the old state
-    // TODO make this logic customizable
+    // need to decide what to do with up-to-date resources from previous build
+
+    // inputs: carry-over metadata. no choice here. the user explicitly registered the inputs.
+
+    // outputs: can be either carried over (including metadata) or deleted
+    // generally, output is carried over if its inputs are up-to-date
+    // which can be tricky to determine in case of many-inputs-to-one-output
+
     Collection<Object> resources = oldState.resources.keySet();
     while (!resources.isEmpty()) {
-      resources = carryOverResources(resources);
+      resources = finalizeResources(resources);
     }
 
     if (stateFile != null) {
@@ -393,7 +390,7 @@ public class DefaultResourceTracker implements ResourceTracker {
     }
   }
 
-  private Collection<Object> carryOverResources(Collection<Object> resources) {
+  private Collection<Object> finalizeResources(Collection<Object> resources) {
     Set<Object> consider = new HashSet<>();
 
     for (Object resource : resources) {
@@ -405,7 +402,10 @@ public class DefaultResourceTracker implements ResourceTracker {
       ResourceHolder<?> holder = state.resources.get(resource);
 
       if (holder == null) {
-        // removed resource, nothing to carry-over either
+        if (oldState.outputs.contains(resource)) {
+          workspace.deleteFile((File) resource);
+        }
+
         continue;
       }
 

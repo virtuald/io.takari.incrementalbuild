@@ -30,7 +30,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
-  private final DefaultResourceTracker tracker;
+  private final AbstractBuildContext tracker;
 
   private final MessageSink messageSink;
 
@@ -45,7 +45,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
   public DefaultBuildContext(Workspace workspace, MessageSink messageSink, File stateFile,
       Map<String, Serializable> configuration) {
 
-    this.tracker = new DefaultResourceTracker(workspace, stateFile, configuration);
+    this.tracker = new AbstractBuildContext(workspace, stateFile, configuration);
 
     this.messageSink = messageSink;
   }
