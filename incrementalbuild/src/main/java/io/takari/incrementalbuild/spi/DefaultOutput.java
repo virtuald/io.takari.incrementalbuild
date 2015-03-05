@@ -1,7 +1,6 @@
 package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.Output;
-import io.takari.incrementalbuild.ResourceMetadata;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,9 +20,9 @@ public class DefaultOutput extends DefaultResource<File> implements Output<File>
     return context.newOutputStream(this);
   }
 
-  @Override
-  public <I> void associateInput(ResourceMetadata<I> input) {
-    context.associate((DefaultResourceMetadata<?>) input, this);
-  }
+  // @Override
+  // public <I> void associateInput(ResourceMetadata<I> input) {
+  // context.associate((DefaultResourceMetadata<?>) input, this);
+  // }
 
 }

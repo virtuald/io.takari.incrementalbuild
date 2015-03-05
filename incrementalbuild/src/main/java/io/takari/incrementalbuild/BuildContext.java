@@ -55,7 +55,7 @@ public interface BuildContext {
   public Iterable<? extends Resource<File>> registerAndProcessInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException;
 
-  public Output<File> processOutput(File outputFile);
+  // public Output<File> processOutput(File outputFile);
 
   /**
    * Returns all inputs registered with this {@link BuildContext} during current and previous

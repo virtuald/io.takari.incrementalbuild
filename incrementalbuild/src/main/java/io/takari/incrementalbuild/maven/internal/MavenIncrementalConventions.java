@@ -3,7 +3,6 @@ package io.takari.incrementalbuild.maven.internal;
 import java.io.File;
 
 import javax.inject.Named;
-import javax.inject.Singleton;
 
 import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.plugin.descriptor.PluginDescriptor;
@@ -13,7 +12,6 @@ import org.apache.maven.project.MavenProject;
  * @author igor
  */
 @Named
-@Singleton
 public class MavenIncrementalConventions {
 
   /**
