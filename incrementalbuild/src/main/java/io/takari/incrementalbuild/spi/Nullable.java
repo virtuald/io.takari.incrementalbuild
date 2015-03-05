@@ -1,4 +1,4 @@
-package io.takari.incrementalbuild.maven.internal;
+package io.takari.incrementalbuild.spi;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -14,4 +14,4 @@ import java.lang.annotation.Target;
  */
 @Target(value = {ElementType.FIELD, ElementType.PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
-@interface Nullable {}
+public @interface Nullable {}

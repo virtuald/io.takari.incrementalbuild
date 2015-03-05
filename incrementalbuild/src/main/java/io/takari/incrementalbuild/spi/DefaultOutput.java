@@ -12,7 +12,7 @@ import java.io.OutputStream;
  */
 public class DefaultOutput extends DefaultResource<File> implements Output<File> {
 
-  DefaultOutput(AbstractBuildContext context, DefaultBuildContextState state, File file) {
+  DefaultOutput(AbstractBuildContext<?> context, DefaultBuildContextState state, File file) {
     super(context, state, file);
   }
 

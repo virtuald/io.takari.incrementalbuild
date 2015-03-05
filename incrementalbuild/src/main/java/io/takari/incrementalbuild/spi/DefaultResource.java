@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 public class DefaultResource<T> extends DefaultResourceMetadata<T> implements Resource<T> {
 
-  DefaultResource(AbstractBuildContext context, DefaultBuildContextState state, T resource) {
+  DefaultResource(AbstractBuildContext<?> context, DefaultBuildContextState state, T resource) {
     super(context, state, resource);
   }
 
@@ -38,7 +38,8 @@ public class DefaultResource<T> extends DefaultResourceMetadata<T> implements Re
   }
 
   @Override
-  public void addMessage(int line, int column, String message, MessageSeverity severity, Throwable cause) {
+  public void addMessage(int line, int column, String message, MessageSeverity severity,
+      Throwable cause) {
     context.addMessage(getResource(), line, column, message, severity, cause);
   }
 

@@ -4,17 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
-
-
 /**
- * 
- * XXX decide if implementations of this interface should be thread-safe or not.
- * 
- * @author igor
+ * Build context that supports 1..* input-output associations.
  */
 public interface BuildContext {
-
-  
 
   /**
    * Registers specified input {@code File} with this build context.

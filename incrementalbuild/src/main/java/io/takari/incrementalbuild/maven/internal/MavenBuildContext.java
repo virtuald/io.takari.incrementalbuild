@@ -1,6 +1,7 @@
 package io.takari.incrementalbuild.maven.internal;
 
 import io.takari.incrementalbuild.spi.DefaultBuildContext;
+import io.takari.incrementalbuild.spi.Nullable;
 import io.takari.incrementalbuild.workspace.MessageSink;
 
 import java.io.IOException;

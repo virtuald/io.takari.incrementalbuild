@@ -29,10 +29,12 @@ import org.slf4j.LoggerFactory;
 /**
  * Tracks build input and output resources and associations among them.
  */
-public class AbstractBuildContext {
+public abstract class AbstractBuildContext<BuildFailureException extends Exception> {
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
   private final Workspace workspace;
+
+  private final MessageSinkAdaptor messager;
 
   private final File stateFile;
 
@@ -47,16 +49,23 @@ public class AbstractBuildContext {
   private final boolean escalated;
 
   /**
-   * Resources known to be deleted since previous build.
+   * Indicates that no further modifications to this build context are allowed.
+   */
+  private boolean closed;
+
+  /**
+   * Resources known to be deleted since previous build. Includes both resources reported as deleted
+   * by Workspace and resources explicitly delete through this build context.
    */
   private final Set<File> deletedResources = new HashSet<>();
 
   /**
-   * Resources selected for processing during this build.
+   * Resources selected for processing during this build. This includes resources created, changed
+   * and deleted through this build context.
    */
   private final Set<Object> processedResources = new HashSet<>();
 
-  public AbstractBuildContext(Workspace workspace, File stateFile,
+  public AbstractBuildContext(Workspace workspace, MessageSinkAdaptor messager, File stateFile,
       Map<String, Serializable> configuration) {
 
     // preconditions
@@ -66,7 +75,11 @@ public class AbstractBuildContext {
     if (configuration == null) {
       throw new NullPointerException();
     }
+    if (messager == null) {
+      throw new NullPointerException();
+    }
 
+    this.messager = messager;
     this.stateFile = stateFile;
     this.state = DefaultBuildContextState.withConfiguration(configuration);
     this.oldState = DefaultBuildContextState.loadFrom(stateFile);
@@ -136,6 +149,9 @@ public class AbstractBuildContext {
     return result;
   }
 
+  public boolean isEscalated() {
+    return escalated;
+  }
 
   /**
    * Registers matching resources as this build's input set.
@@ -182,7 +198,7 @@ public class AbstractBuildContext {
     return result;
   }
 
-  private static File normalize(File file) {
+  protected static File normalize(File file) {
     if (file == null) {
       throw new IllegalArgumentException();
     }
@@ -287,10 +303,13 @@ public class AbstractBuildContext {
 
   private <T> void processResource(final T resource) {
     processedResources.add(resource);
+
     // reset all metadata associated with the resource during this build
     state.resourceAttributes.remove(resource);
     state.resourceMessages.remove(resource);
     state.resourceOutputs.remove(resource);
+
+    messager.clear(resource);
   }
 
   // simple key/value pairs
@@ -315,8 +334,8 @@ public class AbstractBuildContext {
 
   // persisted messages
 
-  public void addMessage(Object resource, int line, int column, String message, MessageSeverity severity,
-      Throwable cause) {
+  public void addMessage(Object resource, int line, int column, String message,
+      MessageSeverity severity, Throwable cause) {
     // this is likely called as part of builder error handling logic.
     // to make IAE easier to troubleshoot, link cause to the exception thrown
     if (resource == null) {
@@ -366,7 +385,15 @@ public class AbstractBuildContext {
     return outputs;
   }
 
-  public void persist() throws IOException {
+  public void commit() throws BuildFailureException, IOException {
+    if (closed) {
+      return;
+    }
+    this.closed = true;
+
+    // funnel all new messages to the message sink
+    messager.record(state.resourceMessages);
+
     // need to decide what to do with up-to-date resources from previous build
 
     // inputs: carry-over metadata. no choice here. the user explicitly registered the inputs.
@@ -388,6 +415,36 @@ public class AbstractBuildContext {
       log.debug("Stored incremental build state {} ({} ms)", stateFile, System.currentTimeMillis()
           - start);
     }
+
+    if (!recordedMessages.isEmpty()) {
+      log.info("Replaying recorded messages...");
+      for (Map.Entry<Object, Collection<Message>> entry : state.resourceMessages.entrySet()) {
+        Object resource = entry.getKey();
+        for (Message message : entry.getValue()) {
+          log(resource, message.line, message.column, message.message, message.severity,
+              message.cause);
+        }
+      }
+    }
+
+    // XXX this is wrong, need to delegate through messager some how
+    // without messageSink, have to raise exception if there were errors
+    int errorCount = 0;
+    StringBuilder errors = new StringBuilder();
+    for (Map.Entry<Object, Collection<Message>> entry : state.resourceMessages.entrySet()) {
+      Object resource = entry.getKey();
+      for (Message message : entry.getValue()) {
+        if (message.severity == MessageSeverity.ERROR) {
+          errorCount++;
+          errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
+              message.column, message.message));
+        }
+      }
+    }
+    if (errorCount > 0) {
+      throw newBuildFailureException(errorCount + " error(s) encountered:\n" + errors.toString());
+    }
+
   }
 
   private Collection<Object> finalizeResources(Collection<Object> resources) {
@@ -439,4 +496,60 @@ public class AbstractBuildContext {
 
     return consider;
   }
+
+  protected void log(Object resource, int line, int column, String message,
+      MessageSeverity severity, Throwable cause) {
+    switch (severity) {
+      case ERROR:
+        log.error("{}:[{}:{}] {}", resource.toString(), line, column, message, cause);
+        break;
+      case WARNING:
+        log.warn("{}:[{}:{}] {}", resource.toString(), line, column, message, cause);
+        break;
+      default:
+        log.info("{}:[{}:{}] {}", resource.toString(), line, column, message, cause);
+        break;
+    }
+  }
+
+  public void deleteOutput(File resource) throws IOException {
+    if (!oldState.outputs.contains(resource) && !state.outputs.contains(resource)) {
+      // not an output known to this build context
+      throw new IllegalArgumentException();
+    }
+
+    workspace.deleteFile(resource);
+
+    deletedResources.add(resource);
+    processedResources.add(resource);
+
+    state.resources.remove(resource);
+    state.outputs.remove(resource);
+
+    state.resourceAttributes.remove(resource);
+    state.resourceMessages.remove(resource);
+    state.resourceOutputs.remove(resource);
+  }
+
+  protected void assertOpen() {
+    if (closed) {
+      throw new IllegalStateException();
+    }
+  }
+
+  /**
+   * Marks skipped build execution. All inputs, outputs and their associated metadata are carried
+   * over to the next build as-is. No context modification operations (register* or process) are
+   * permitted after this call.
+   */
+  public void markSkipExecution() {
+    if (!processedResources.isEmpty()) {
+      throw new IllegalStateException();
+    }
+
+    closed = true;
+  }
+
+  protected abstract BuildFailureException newBuildFailureException(String message);
+
 }
