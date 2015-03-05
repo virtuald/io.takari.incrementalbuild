@@ -1,9 +1,9 @@
 package io.takari.incrementalbuild.aggregator.internal;
 
-import io.takari.incrementalbuild.BuildContext.Output;
-import io.takari.incrementalbuild.BuildContext.Resource;
-import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
-import io.takari.incrementalbuild.BuildContext.ResourceStatus;
+import io.takari.incrementalbuild.Output;
+import io.takari.incrementalbuild.Resource;
+import io.takari.incrementalbuild.ResourceMetadata;
+import io.takari.incrementalbuild.ResourceStatus;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext;
 import io.takari.incrementalbuild.spi.DefaultBuildContext;
 import io.takari.incrementalbuild.spi.DefaultOutput;

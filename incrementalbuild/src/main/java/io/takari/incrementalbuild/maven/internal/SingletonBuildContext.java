@@ -1,6 +1,7 @@
 package io.takari.incrementalbuild.maven.internal;
 
 import io.takari.incrementalbuild.BuildContext;
+import io.takari.incrementalbuild.Output;
 
 import java.io.File;
 import java.io.IOException;

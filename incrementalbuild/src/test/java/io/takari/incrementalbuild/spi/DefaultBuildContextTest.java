@@ -5,8 +5,8 @@ import static io.takari.incrementalbuild.BuildContext.ResourceStatus.NEW;
 import static io.takari.incrementalbuild.BuildContext.ResourceStatus.UNMODIFIED;
 import io.takari.incrementalbuild.BuildContext.InputMetadata;
 import io.takari.incrementalbuild.BuildContext.OutputMetadata;
-import io.takari.incrementalbuild.BuildContext.ResourceStatus;
-import io.takari.incrementalbuild.BuildContext.Severity;
+import io.takari.incrementalbuild.MessageSeverity;
+import io.takari.incrementalbuild.ResourceStatus;
 
 import java.io.File;
 import java.io.IOException;
@@ -805,7 +805,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     inputFile = metadata.getResource();
     DefaultResource<File> input = metadata.process();
-    input.addMessage(0, 0, "message", Severity.WARNING, null);
+    input.addMessage(0, 0, "message", MessageSeverity.WARNING, null);
     context.commit();
 
     // the message is retained during no-change rebuild
@@ -828,7 +828,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     context = newBuildContext();
     metadata = context.registerInput(inputFile);
     input = metadata.process();
-    input.addMessage(0, 0, "newMessage", Severity.WARNING, null);
+    input.addMessage(0, 0, "newMessage", MessageSeverity.WARNING, null);
     context.commit();
     context = newBuildContext();
     metadata = context.registerInput(inputFile);
@@ -857,7 +857,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     inputFile = metadata.getResource();
     DefaultResource<File> input = metadata.process();
-    input.addMessage(0, 0, null, Severity.WARNING, null);
+    input.addMessage(0, 0, null, MessageSeverity.WARNING, null);
     context.commit();
 
     context = newBuildContext();
@@ -878,7 +878,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     DefaultResourceMetadata<File> metadata = context.registerInput(inputFile);
     DefaultResource<File> input = metadata.process();
     DefaultOutput output = input.associateOutput(outputFile);
-    output.addMessage(0, 0, "message", Severity.WARNING, null);
+    output.addMessage(0, 0, "message", MessageSeverity.WARNING, null);
     context.commit();
 
     // the message is retained during no-change rebuild
@@ -904,7 +904,7 @@ public class DefaultBuildContextTest extends AbstractBuildContextTest {
     metadata = context.registerInput(inputFile);
     input = metadata.process();
     output = input.associateOutput(outputFile);
-    output.addMessage(0, 0, "newMessage", Severity.WARNING, null);
+    output.addMessage(0, 0, "newMessage", MessageSeverity.WARNING, null);
     context.commit();
     context = newBuildContext();
     metadata = context.registerInput(inputFile);

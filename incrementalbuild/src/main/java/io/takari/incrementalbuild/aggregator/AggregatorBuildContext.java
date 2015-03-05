@@ -1,8 +1,8 @@
 package io.takari.incrementalbuild.aggregator;
 
-import io.takari.incrementalbuild.BuildContext.Output;
-import io.takari.incrementalbuild.BuildContext.Resource;
-import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
+import io.takari.incrementalbuild.Output;
+import io.takari.incrementalbuild.Resource;
+import io.takari.incrementalbuild.ResourceMetadata;
 
 import java.io.File;
 import java.io.IOException;

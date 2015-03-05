@@ -1,6 +1,6 @@
 package io.takari.incrementalbuild.maven.testing;
 
-import io.takari.incrementalbuild.BuildContext.Severity;
+import io.takari.incrementalbuild.MessageSeverity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -62,7 +62,7 @@ public class IncrementalBuildLog {
     inputMessages.clear();
   }
 
-  public void message(Object resource, int line, int column, String message, Severity severity,
+  public void message(Object resource, int line, int column, String message, MessageSeverity severity,
       Throwable cause) {
 
     if (!(resource instanceof File)) {

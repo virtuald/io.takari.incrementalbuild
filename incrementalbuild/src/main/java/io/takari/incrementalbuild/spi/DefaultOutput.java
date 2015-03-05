@@ -1,7 +1,7 @@
 package io.takari.incrementalbuild.spi;
 
-import io.takari.incrementalbuild.BuildContext.Output;
-import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
+import io.takari.incrementalbuild.Output;
+import io.takari.incrementalbuild.ResourceMetadata;
 
 import java.io.File;
 import java.io.IOException;

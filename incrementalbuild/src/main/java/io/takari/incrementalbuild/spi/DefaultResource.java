@@ -1,8 +1,8 @@
 package io.takari.incrementalbuild.spi;
 
-import io.takari.incrementalbuild.BuildContext.Output;
-import io.takari.incrementalbuild.BuildContext.Resource;
-import io.takari.incrementalbuild.BuildContext.Severity;
+import io.takari.incrementalbuild.MessageSeverity;
+import io.takari.incrementalbuild.Output;
+import io.takari.incrementalbuild.Resource;
 
 import java.io.File;
 import java.io.Serializable;
@@ -38,7 +38,7 @@ public class DefaultResource<T> extends DefaultResourceMetadata<T> implements Re
   }
 
   @Override
-  public void addMessage(int line, int column, String message, Severity severity, Throwable cause) {
+  public void addMessage(int line, int column, String message, MessageSeverity severity, Throwable cause) {
     context.addMessage(getResource(), line, column, message, severity, cause);
   }
 

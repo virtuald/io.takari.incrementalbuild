@@ -1,6 +1,6 @@
 package io.takari.incrementalbuild.spi;
 
-import io.takari.incrementalbuild.BuildContext.Severity;
+import io.takari.incrementalbuild.MessageSeverity;
 
 import java.io.Serializable;
 
@@ -14,13 +14,13 @@ class Message implements Serializable {
 
   public final String message;
 
-  public final Severity severity;
+  public final MessageSeverity severity;
 
   public final Throwable cause;
 
   private final int hashCode;
 
-  public Message(int line, int column, String message, Severity severity, Throwable cause) {
+  public Message(int line, int column, String message, MessageSeverity severity, Throwable cause) {
     this.line = line;
     this.column = column;
     this.message = message;

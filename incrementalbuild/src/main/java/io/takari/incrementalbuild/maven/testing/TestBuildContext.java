@@ -1,5 +1,6 @@
 package io.takari.incrementalbuild.maven.testing;
 
+import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.maven.internal.MavenBuildContext;
 import io.takari.incrementalbuild.maven.internal.MavenIncrementalConventions;
 import io.takari.incrementalbuild.maven.internal.MojoConfigurationDigester;
@@ -48,7 +49,7 @@ class TestBuildContext extends MavenBuildContext {
   }
 
   @Override
-  protected void log(Object resource, int line, int column, String message, Severity severity,
+  protected void log(Object resource, int line, int column, String message, MessageSeverity severity,
       Throwable cause) {
     logger.message(resource, line, column, message, severity, cause);
   }

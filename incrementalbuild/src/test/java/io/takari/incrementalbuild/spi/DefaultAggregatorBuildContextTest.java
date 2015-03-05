@@ -1,8 +1,8 @@
 package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext.Input;
-import io.takari.incrementalbuild.BuildContext.Output;
-import io.takari.incrementalbuild.BuildContext.Severity;
+import io.takari.incrementalbuild.MessageSeverity;
+import io.takari.incrementalbuild.Output;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext.AggregateCreator;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext.AggregateInput;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext.InputProcessor;
@@ -154,7 +154,7 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
       @Override
       public void process(Input<File> input) throws IOException {
         input.setAttribute("key", "value");
-        input.addMessage(0, 0, "message", Severity.INFO, null);
+        input.addMessage(0, 0, "message", MessageSeverity.INFO, null);
       }
     });
     output.createIfNecessary(new FileIndexer());
@@ -170,7 +170,7 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
       @Override
       public void process(Input<File> input) throws IOException {
         input.setAttribute("key", "value");
-        input.addMessage(0, 0, "message", Severity.INFO, null);
+        input.addMessage(0, 0, "message", MessageSeverity.INFO, null);
       }
     });
     output.createIfNecessary(new AggregateCreator() {

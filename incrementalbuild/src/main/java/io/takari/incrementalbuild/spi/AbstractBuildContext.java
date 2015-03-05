@@ -1,9 +1,9 @@
 package io.takari.incrementalbuild.spi;
 
 import static io.takari.incrementalbuild.spi.MMaps.put;
-import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
-import io.takari.incrementalbuild.BuildContext.ResourceStatus;
-import io.takari.incrementalbuild.BuildContext.Severity;
+import io.takari.incrementalbuild.MessageSeverity;
+import io.takari.incrementalbuild.ResourceMetadata;
+import io.takari.incrementalbuild.ResourceStatus;
 import io.takari.incrementalbuild.workspace.Workspace;
 import io.takari.incrementalbuild.workspace.Workspace.FileVisitor;
 import io.takari.incrementalbuild.workspace.Workspace.Mode;
@@ -315,7 +315,7 @@ public class AbstractBuildContext {
 
   // persisted messages
 
-  public void addMessage(Object resource, int line, int column, String message, Severity severity,
+  public void addMessage(Object resource, int line, int column, String message, MessageSeverity severity,
       Throwable cause) {
     // this is likely called as part of builder error handling logic.
     // to make IAE easier to troubleshoot, link cause to the exception thrown

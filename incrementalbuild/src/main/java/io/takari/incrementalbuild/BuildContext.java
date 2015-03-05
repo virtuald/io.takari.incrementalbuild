@@ -2,8 +2,6 @@ package io.takari.incrementalbuild;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.Serializable;
 import java.util.Collection;
 
 
@@ -16,80 +14,7 @@ import java.util.Collection;
  */
 public interface BuildContext {
 
-  public static enum Severity {
-    ERROR, WARNING, INFO
-  }
-
-  public static enum ResourceStatus {
-
-    /**
-     * Input is new in this build, i.e. it was not present in the previous build.
-     */
-    NEW,
-
-    /**
-     * Input itself changed or any of its included inputs changed or was removed since last build.
-     */
-    MODIFIED,
-
-    /**
-     * Input itself and all includes inputs, if any, did not change since last build.
-     */
-    UNMODIFIED,
-
-    /**
-     * Input was removed since last build.
-     */
-    REMOVED;
-  }
-
-  public static interface ResourceMetadata<T> {
-
-    public T getResource();
-
-    public ResourceStatus getStatus();
-
-    /**
-     * Returns current attribute value.
-     * <p>
-     * For registered (but not processed) resources and carried over resources, returns value
-     * associated with the key during previous build. For processed resources, returns value
-     * associated with the key during this build.
-     */
-    public <V extends Serializable> V getAttribute(String key, Class<V> clazz);
-
-    /**
-     * Returns outputs associated with this resource.
-     * <p>
-     * For registered (but not processed) resources and carried over resources returns outputs
-     * associated with the resource during previous build. For processed resources, returns outputs
-     * associated with the resource during this build.
-     */
-    public Iterable<? extends ResourceMetadata<File>> getAssociatedOutputs();
-
-    public Resource<T> process();
-
-  }
-
-  public static interface Resource<T> extends ResourceMetadata<T> {
-
-    /**
-     * Returns attribute value associated with the key during previous build.
-     */
-    public <V extends Serializable> Serializable setAttribute(String key, V value);
-
-    public void addMessage(int line, int column, String message, Severity severity, Throwable cause);
-
-    public Output<File> associateOutput(Output<File> output);
-
-    public Output<File> associateOutput(File outputFile);
-  }
-
-  public static interface Output<T> extends Resource<T> {
-
-    public OutputStream newOutputStream() throws IOException;
-
-  }
+  
 
   /**
    * Registers specified input {@code File} with this build context.

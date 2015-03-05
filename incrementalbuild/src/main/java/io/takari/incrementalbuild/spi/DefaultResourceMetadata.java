@@ -1,7 +1,7 @@
 package io.takari.incrementalbuild.spi;
 
-import io.takari.incrementalbuild.BuildContext.ResourceMetadata;
-import io.takari.incrementalbuild.BuildContext.ResourceStatus;
+import io.takari.incrementalbuild.ResourceMetadata;
+import io.takari.incrementalbuild.ResourceStatus;
 
 import java.io.File;
 import java.io.Serializable;

@@ -1,6 +1,9 @@
 package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext;
+import io.takari.incrementalbuild.MessageSeverity;
+import io.takari.incrementalbuild.Resource;
+import io.takari.incrementalbuild.ResourceStatus;
 import io.takari.incrementalbuild.workspace.MessageSink;
 import io.takari.incrementalbuild.workspace.Workspace;
 import io.takari.incrementalbuild.workspace.Workspace.FileVisitor;
@@ -323,7 +326,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
 
   // messages
 
-  protected void log(Object resource, int line, int column, String message, Severity severity,
+  protected void log(Object resource, int line, int column, String message, MessageSeverity severity,
       Throwable cause) {
     switch (severity) {
       case ERROR:
@@ -459,7 +462,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
       for (Map.Entry<Object, Collection<Message>> entry : state.resourceMessages.entrySet()) {
         Object resource = entry.getKey();
         for (Message message : entry.getValue()) {
-          if (message.severity == Severity.ERROR) {
+          if (message.severity == MessageSeverity.ERROR) {
             errorCount++;
             errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
                 message.column, message.message));
@@ -472,7 +475,7 @@ public abstract class DefaultBuildContext<BuildFailureException extends Exceptio
     }
   }
 
-  private MessageSink.Severity toMessageSinkSeverity(Severity severity) {
+  private MessageSink.Severity toMessageSinkSeverity(MessageSeverity severity) {
     switch (severity) {
       case ERROR:
         return MessageSink.Severity.ERROR;
