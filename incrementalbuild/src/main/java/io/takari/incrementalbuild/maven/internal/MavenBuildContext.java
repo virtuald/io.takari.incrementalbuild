@@ -22,7 +22,7 @@ import org.apache.maven.execution.scope.MojoExecutionScoped;
  * Singleton-friendly {@link BuildContext} implementation. Uses {@link Provider} to locate currently
  * active {@link MavenBuildContextFinalizer} instance.
  * <p>
- * {@link ScopedBuildContext} is {@link MojoExecutionScoped} and its lifecycle is bound to lifecycle
+ * {@link MojoExecutionScopedBuildContext} is {@link MojoExecutionScoped} and its lifecycle is bound to lifecycle
  * of the corresponding mojo execution, that is, it is created right before the mojo execution
  * starts and discarded immediately after the mojo execution ends. Most Maven plugin components,
  * however, are singletons, which means they are created when plugin class realm is created at the
@@ -35,19 +35,19 @@ public class MavenBuildContext implements BuildContext {
 
   @Named
   @MojoExecutionScoped
-  @Typed(ScopedBuildContext.class)
-  public static final class ScopedBuildContext extends DefaultBuildContext {
+  @Typed(MojoExecutionScopedBuildContext.class)
+  public static class MojoExecutionScopedBuildContext extends DefaultBuildContext {
 
     @Inject
-    public ScopedBuildContext(Workspace workspace, MavenIncrementalConventions convensions,
+    public MojoExecutionScopedBuildContext(Workspace workspace, MavenIncrementalConventions convensions,
         MojoConfigurationDigester digester) throws IOException {
       super(workspace, convensions.getExecutionStateLocation(), digester.digest());
     }
   }
 
-  private final Provider<ScopedBuildContext> provider;
+  private final Provider<MojoExecutionScopedBuildContext> provider;
 
-  public MavenBuildContext(Provider<ScopedBuildContext> delegate) {
+  public MavenBuildContext(Provider<MojoExecutionScopedBuildContext> delegate) {
     this.provider = delegate;
   }
 
