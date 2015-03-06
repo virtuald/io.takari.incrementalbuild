@@ -15,6 +15,7 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,12 +30,10 @@ import org.slf4j.LoggerFactory;
 /**
  * Tracks build input and output resources and associations among them.
  */
-public abstract class AbstractBuildContext<BuildFailureException extends Exception> {
+public abstract class AbstractBuildContext {
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
   private final Workspace workspace;
-
-  private final MessageSinkAdaptor messager;
 
   private final File stateFile;
 
@@ -65,7 +64,7 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
    */
   private final Set<Object> processedResources = new HashSet<>();
 
-  public AbstractBuildContext(Workspace workspace, MessageSinkAdaptor messager, File stateFile,
+  public AbstractBuildContext(Workspace workspace, File stateFile,
       Map<String, Serializable> configuration) {
 
     // preconditions
@@ -75,11 +74,7 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
     if (configuration == null) {
       throw new NullPointerException();
     }
-    if (messager == null) {
-      throw new NullPointerException();
-    }
 
-    this.messager = messager;
     this.stateFile = stateFile;
     this.state = DefaultBuildContextState.withConfiguration(configuration);
     this.oldState = DefaultBuildContextState.loadFrom(stateFile);
@@ -308,8 +303,6 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
     state.resourceAttributes.remove(resource);
     state.resourceMessages.remove(resource);
     state.resourceOutputs.remove(resource);
-
-    messager.clear(resource);
   }
 
   // simple key/value pairs
@@ -345,6 +338,7 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
       throw new IllegalArgumentException(cause);
     }
     put(state.resourceMessages, resource, new Message(line, column, message, severity, cause));
+    log(resource, line, column, message, severity, cause);
   }
 
   public DefaultOutput processOutput(File outputFile) {
@@ -385,72 +379,16 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
     return outputs;
   }
 
-  public void commit() throws BuildFailureException, IOException {
+  public void commit(MessageSinkAdaptor messager) throws IOException {
     if (closed) {
       return;
     }
     this.closed = true;
 
-    // funnel all new messages to the message sink
-    messager.record(state.resourceMessages);
+    Map<Object, Collection<Message>> newMessages = new HashMap<>(state.resourceMessages);
 
-    // need to decide what to do with up-to-date resources from previous build
-
-    // inputs: carry-over metadata. no choice here. the user explicitly registered the inputs.
-
-    // outputs: can be either carried over (including metadata) or deleted
-    // generally, output is carried over if its inputs are up-to-date
-    // which can be tricky to determine in case of many-inputs-to-one-output
-
-    Collection<Object> resources = oldState.resources.keySet();
-    while (!resources.isEmpty()) {
-      resources = finalizeResources(resources);
-    }
-
-    if (stateFile != null) {
-      final long start = System.currentTimeMillis();
-      try (OutputStream os = workspace.newOutputStream(stateFile)) {
-        state.storeTo(os);
-      }
-      log.debug("Stored incremental build state {} ({} ms)", stateFile, System.currentTimeMillis()
-          - start);
-    }
-
-    if (!recordedMessages.isEmpty()) {
-      log.info("Replaying recorded messages...");
-      for (Map.Entry<Object, Collection<Message>> entry : state.resourceMessages.entrySet()) {
-        Object resource = entry.getKey();
-        for (Message message : entry.getValue()) {
-          log(resource, message.line, message.column, message.message, message.severity,
-              message.cause);
-        }
-      }
-    }
-
-    // XXX this is wrong, need to delegate through messager some how
-    // without messageSink, have to raise exception if there were errors
-    int errorCount = 0;
-    StringBuilder errors = new StringBuilder();
-    for (Map.Entry<Object, Collection<Message>> entry : state.resourceMessages.entrySet()) {
-      Object resource = entry.getKey();
-      for (Message message : entry.getValue()) {
-        if (message.severity == MessageSeverity.ERROR) {
-          errorCount++;
-          errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
-              message.column, message.message));
-        }
-      }
-    }
-    if (errorCount > 0) {
-      throw newBuildFailureException(errorCount + " error(s) encountered:\n" + errors.toString());
-    }
-
-  }
-
-  private Collection<Object> finalizeResources(Collection<Object> resources) {
-    Set<Object> consider = new HashSet<>();
-
-    for (Object resource : resources) {
+    // carry-over up-to-date resources
+    for (Object resource : oldState.resources.keySet()) {
       if (processedResources.contains(resource) || deletedResources.contains(resource)) {
         // known deleted or processed resource, nothing to carry over
         continue;
@@ -460,10 +398,18 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
 
       if (holder == null) {
         if (oldState.outputs.contains(resource)) {
-          workspace.deleteFile((File) resource);
+          // old output resource that was not re-processed or deleted during this build
+          if (!isOutputUptodate((File) resource)) {
+            // state or orphaned output, delete and do not carry-over metadata
+            deleteOutput((File) resource);
+            continue;
+          }
+          // else, carry-over output resource metadata
+          holder = oldState.resources.get(resource);
+        } else {
+          // old input that was not re-registered during this build, do not carry-over metadata
+          continue;
         }
-
-        continue;
       }
 
       state.resources.put(resource, holder);
@@ -483,19 +429,59 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
       Collection<File> outputFiles = oldState.resourceOutputs.get(resource);
       if (outputFiles != null && !outputFiles.isEmpty()) {
         state.resourceOutputs.put(resource, outputFiles);
-        // associated up-to-date outputs need to be carried over
-        for (File outputFile : outputFiles) {
-          if (!state.resources.containsKey(outputFile)) {
-            state.resources.put(outputFile, oldState.resources.get(outputFile));
-            state.outputs.add(outputFile);
-            consider.add(outputFile);
+      }
+    }
+
+    if (stateFile != null) {
+      final long start = System.currentTimeMillis();
+      try (OutputStream os = workspace.newOutputStream(stateFile)) {
+        state.storeTo(os);
+      }
+      log.debug("Stored incremental build state {} ({} ms)", stateFile, System.currentTimeMillis()
+          - start);
+    }
+
+    // new messages are logged as soon as they are reported during the build
+    // replay old messages so the user can still see them
+    Map<Object, Collection<Message>> allMessages = new HashMap<>(state.resourceMessages);
+    if (!allMessages.keySet().equals(newMessages.keySet())) {
+      log.info("Replaying recorded messages...");
+      for (Map.Entry<Object, Collection<Message>> entry : allMessages.entrySet()) {
+        Object resource = entry.getKey();
+        if (!newMessages.containsKey(resource)) {
+          for (Message message : entry.getValue()) {
+            log(resource, message.line, message.column, message.message, message.severity,
+                message.cause);
           }
         }
       }
     }
 
-    return consider;
+    // processedResources includes resources added, changed and deleted during this build
+    // clear all old messages associated with the processed resources during previous builds
+    for (Object resource : processedResources) {
+      messager.clear(resource);
+    }
+    messager.record(allMessages, newMessages);
+
+    // XXX this is wrong, need to delegate through messager some how
+    // without messageSink, have to raise exception if there were errors
+    int errorCount = 0;
+    StringBuilder errors = new StringBuilder();
+    for (Map.Entry<Object, Collection<Message>> entry : newMessages.entrySet()) {
+      Object resource = entry.getKey();
+      for (Message message : entry.getValue()) {
+        if (message.severity == MessageSeverity.ERROR) {
+          errorCount++;
+          errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
+              message.column, message.message));
+        }
+      }
+    }
+
   }
+
+  protected abstract boolean isOutputUptodate(File resource);
 
   protected void log(Object resource, int line, int column, String message,
       MessageSeverity severity, Throwable cause) {
@@ -549,7 +535,4 @@ public abstract class AbstractBuildContext<BuildFailureException extends Excepti
 
     closed = true;
   }
-
-  protected abstract BuildFailureException newBuildFailureException(String message);
-
 }
