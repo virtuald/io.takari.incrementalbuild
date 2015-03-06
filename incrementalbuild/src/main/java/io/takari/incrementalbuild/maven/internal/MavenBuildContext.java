@@ -69,4 +69,8 @@ public class MavenBuildContext implements BuildContext {
     return provider.get().registerAndProcessInputs(basedir, includes, excludes);
   }
 
+  @Override
+  public void markSkipExecution() {
+    provider.get().markSkipExecution();
+  }
 }

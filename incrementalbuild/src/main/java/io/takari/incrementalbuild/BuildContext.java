@@ -55,4 +55,6 @@ public interface BuildContext {
   public Iterable<? extends Resource<File>> registerAndProcessInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException;
 
+  public void markSkipExecution();
+
 }

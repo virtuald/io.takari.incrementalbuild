@@ -296,4 +296,12 @@ public class DefaultBuildContextState implements Serializable {
   public boolean putOutputInput(File outputFile, Object input) {
     return MMaps.put(outputInputs, outputFile, input);
   }
+
+  public Collection<File> getOutputs() {
+    return Collections.unmodifiableCollection(outputs);
+  }
+
+  public boolean isOutput(File outputFile) {
+    return outputs.contains(outputFile);
+  }
 }

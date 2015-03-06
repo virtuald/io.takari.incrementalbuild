@@ -546,4 +546,9 @@ public abstract class AbstractBuildContext {
   protected boolean isRegisteredResource(Object resource) {
     return state.resources.containsKey(resource);
   }
+
+  protected <T> DefaultResourceMetadata<T> newResourceMetadata(DefaultBuildContextState state,
+      T resource) {
+    return new DefaultResourceMetadata<T>(this, state, resource);
+  }
 }
