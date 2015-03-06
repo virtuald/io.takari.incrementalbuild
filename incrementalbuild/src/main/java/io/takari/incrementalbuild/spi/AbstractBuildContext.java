@@ -475,24 +475,11 @@ public abstract class AbstractBuildContext {
 
     // processedResources includes resources added, changed and deleted during this build
     // clear all old messages associated with the processed resources during previous builds
-    for (Object resource : processedResources) {
-      messager.clear(resource);
-    }
-    messager.record(allMessages, newMessages);
-
-    // XXX this is wrong, need to delegate through messager some how
-    // without messageSink, have to raise exception if there were errors
-    int errorCount = 0;
-    StringBuilder errors = new StringBuilder();
-    for (Map.Entry<Object, Collection<Message>> entry : newMessages.entrySet()) {
-      Object resource = entry.getKey();
-      for (Message message : entry.getValue()) {
-        if (message.severity == MessageSeverity.ERROR) {
-          errorCount++;
-          errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
-              message.column, message.message));
-        }
+    if (messager != null) {
+      for (Object resource : processedResources) {
+        messager.clear(resource);
       }
+      messager.record(allMessages, newMessages);
     }
 
   }
