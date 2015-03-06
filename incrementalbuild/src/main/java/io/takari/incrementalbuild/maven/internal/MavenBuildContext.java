@@ -10,7 +10,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
-import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -19,28 +18,30 @@ import javax.inject.Singleton;
 import org.apache.maven.execution.scope.MojoExecutionScoped;
 
 /**
- * Singleton-friendly {@link BuildContext} implementation. Uses {@link Provider} to locate currently
- * active {@link MavenBuildContextFinalizer} instance.
+ * Maven Guice/JSR330 bindings for {@link DefaultBuildContext}.
  * <p>
- * {@link MojoExecutionScopedBuildContext} is {@link MojoExecutionScoped} and its lifecycle is bound to lifecycle
- * of the corresponding mojo execution, that is, it is created right before the mojo execution
- * starts and discarded immediately after the mojo execution ends. Most Maven plugin components,
- * however, are singletons, which means they are created when plugin class realm is created at the
- * beginning of the build and discarded when plugin realm is discarded at the end of the build. It
- * is therefore not possible to bind MavenBuildContext to singleton components directly.
+ * {@link MojoExecutionScopedBuildContext} is {@link MojoExecutionScoped} and its lifecycle is bound
+ * to lifecycle of the corresponding mojo execution, that is, it is created right before the mojo
+ * execution starts and discarded immediately after the mojo execution ends. Most Maven plugin
+ * components, however, are singletons, which means they are created when plugin class realm is
+ * created at the beginning of the build and discarded when plugin realm is discarded at the end of
+ * the build. It is therefore not possible to bind MavenBuildContext to singleton components
+ * directly.
  */
-@Named
+@Named(MavenBuildContext.HINT)
 @Singleton
 public class MavenBuildContext implements BuildContext {
 
+  public static final String HINT = "singleton";
+
   @Named
   @MojoExecutionScoped
-  @Typed(MojoExecutionScopedBuildContext.class)
   public static class MojoExecutionScopedBuildContext extends DefaultBuildContext {
 
     @Inject
-    public MojoExecutionScopedBuildContext(Workspace workspace, MavenIncrementalConventions convensions,
-        MojoConfigurationDigester digester) throws IOException {
+    public MojoExecutionScopedBuildContext(Workspace workspace,
+        MavenIncrementalConventions convensions, MojoConfigurationDigester digester)
+        throws IOException {
       super(workspace, convensions.getExecutionStateLocation(), digester.digest());
     }
   }
