@@ -1,6 +1,5 @@
 package io.takari.incrementalbuild.spi;
 
-import static io.takari.incrementalbuild.spi.MMaps.put;
 import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.ResourceMetadata;
 import io.takari.incrementalbuild.ResourceStatus;
@@ -17,7 +16,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -178,11 +176,10 @@ public abstract class AbstractBuildContext {
       // only NEW, MODIFIED and REMOVED resources are reported in DELTA mode
       // need to find any UNMODIFIED
       final FileMatcher absoluteMatcher = FileMatcher.matcher(basedir, includes, excludes);
-      for (ResourceHolder<?> holder : oldState.resources.values()) {
+      for (ResourceHolder<?> holder : oldState.resourcesMap().values()) {
         if (holder instanceof FileState) {
           FileState fileState = (FileState) holder;
-          if (!state.resources.containsKey(fileState.file)
-              && !deletedResources.contains(fileState.file)
+          if (!state.isResource(fileState.file) && !deletedResources.contains(fileState.file)
               && absoluteMatcher.matches(fileState.file)) {
             result.add(registerNormalizedResource(fileState.file, fileState.lastModified,
                 fileState.length, false));
@@ -206,7 +203,7 @@ public abstract class AbstractBuildContext {
 
   protected DefaultResourceMetadata<File> registerNormalizedResource(File resourceFile,
       long lastModified, long length, boolean replace) {
-    if (!state.resources.containsKey(resourceFile)) {
+    if (!state.isResource(resourceFile)) {
       registerResource(newFileState(resourceFile, lastModified, length), replace);
     }
     return new DefaultResourceMetadata<File>(this, oldState, resourceFile);
@@ -231,18 +228,18 @@ public abstract class AbstractBuildContext {
    */
   private <T extends Serializable> T registerResource(ResourceHolder<T> holder, boolean replace) {
     T resource = holder.getResource();
-    ResourceHolder<?> other = state.resources.get(resource);
+    ResourceHolder<?> other = state.getResource(resource);
     if (other == null) {
       if (getResourceStatus(holder) == ResourceStatus.REMOVED) {
         throw new IllegalArgumentException("Resource does not exist " + resource);
       }
-      state.resources.put(resource, holder);
+      state.putResource(resource, holder);
     } else {
       if (!holder.equals(other)) {
         if (!replace) {
           throw new IllegalArgumentException("Inconsistent resource state " + resource);
         }
-        state.resources.put(resource, holder);
+        state.putResource(resource, holder);
       }
     }
     return resource;
@@ -256,7 +253,7 @@ public abstract class AbstractBuildContext {
       return ResourceStatus.REMOVED;
     }
 
-    ResourceHolder<?> oldResourceState = oldState.resources.get(resource);
+    ResourceHolder<?> oldResourceState = oldState.getResource(resource);
     if (oldResourceState == null) {
       return ResourceStatus.NEW;
     }
@@ -289,7 +286,7 @@ public abstract class AbstractBuildContext {
   public <T> DefaultResource<T> processResource(DefaultResourceMetadata<T> metadata) {
     final T resource = metadata.getResource();
 
-    if (metadata.context != this || !state.resources.containsKey(resource)) {
+    if (metadata.context != this || !state.isResource(resource)) {
       throw new IllegalArgumentException();
     }
 
@@ -306,28 +303,23 @@ public abstract class AbstractBuildContext {
     processedResources.add(resource);
 
     // reset all metadata associated with the resource during this build
-    state.resourceAttributes.remove(resource);
-    state.resourceMessages.remove(resource);
-    state.resourceOutputs.remove(resource);
+    state.removeResourceAttributes(resource);
+    state.removeResourceMessages(resource);
+    state.removeResourceOutputs(resource);
   }
 
   // simple key/value pairs
 
   public <T extends Serializable> Serializable setResourceAttribute(Object resource, String key,
       T value) {
-    Map<String, Serializable> attributes = state.resourceAttributes.get(resource);
-    if (attributes == null) {
-      attributes = new LinkedHashMap<String, Serializable>();
-      state.resourceAttributes.put(resource, attributes);
-    }
-    attributes.put(key, value);
-    Map<String, Serializable> oldAttributes = oldState.resourceAttributes.get(resource);
-    return oldAttributes != null ? (Serializable) oldAttributes.get(key) : null;
+    state.putResourceAttribute(resource, key, value);
+    // TODO odd this always returns previous build state. need to think about it
+    return oldState.getResourceAttribute(resource, key);
   }
 
   public <T extends Serializable> T getResourceAttribute(DefaultBuildContextState state,
       Object resource, String key, Class<T> clazz) {
-    Map<String, Serializable> attributes = state.resourceAttributes.get(resource);
+    Map<String, Serializable> attributes = state.getResourceAttributes(resource);
     return attributes != null ? clazz.cast(attributes.get(key)) : null;
   }
 
@@ -343,20 +335,20 @@ public abstract class AbstractBuildContext {
     if (severity == null) {
       throw new IllegalArgumentException(cause);
     }
-    put(state.resourceMessages, resource, new Message(line, column, message, severity, cause));
+    state.addResourceMessage(resource, new Message(line, column, message, severity, cause));
     log(resource, line, column, message, severity, cause);
   }
 
   public DefaultOutput processOutput(File outputFile) {
     outputFile = normalize(outputFile);
 
-    if (state.resources.containsKey(outputFile) != state.outputs.contains(outputFile)) {
+    if (state.isResource(outputFile) != state.isOutput(outputFile)) {
       throw new IllegalStateException("Cannot process input resource as output " + outputFile);
     }
 
     registerNormalizedResource(outputFile, outputFile.lastModified(), outputFile.length(), true);
     processResource(outputFile);
-    state.outputs.add(outputFile);
+    state.addOutput(outputFile);
 
     return new DefaultOutput(this, state, outputFile);
   }
@@ -373,7 +365,7 @@ public abstract class AbstractBuildContext {
       throw new IllegalArgumentException();
     }
 
-    put(state.resourceOutputs, resource.getResource(), output.getResource());
+    state.putResourceOutput(resource.getResource(), output.getResource());
     return output;
   }
 
@@ -384,7 +376,7 @@ public abstract class AbstractBuildContext {
 
   public Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(
       DefaultBuildContextState state, Object resource) {
-    Collection<File> outputFiles = state.resourceOutputs.get(resource);
+    Collection<File> outputFiles = state.getResourceOutputs(resource);
     if (outputFiles == null || outputFiles.isEmpty()) {
       return Collections.emptyList();
     }
@@ -401,19 +393,19 @@ public abstract class AbstractBuildContext {
     }
     this.closed = true;
 
-    Map<Object, Collection<Message>> newMessages = new HashMap<>(state.resourceMessages);
+    Map<Object, Collection<Message>> newMessages = new HashMap<>(state.resourceMessagesMap());
 
     // carry-over up-to-date resources
-    for (Object resource : oldState.resources.keySet()) {
+    for (Object resource : oldState.resourcesMap().keySet()) {
       if (processedResources.contains(resource) || deletedResources.contains(resource)) {
         // known deleted or processed resource, nothing to carry over
         continue;
       }
 
-      ResourceHolder<?> holder = state.resources.get(resource);
+      ResourceHolder<?> holder = state.getResource(resource);
 
       if (holder == null) {
-        if (oldState.outputs.contains(resource)) {
+        if (oldState.isOutput(resource)) {
           // old output resource that was not re-processed or deleted during this build
           if (!shouldCarryOverOutput((File) resource)) {
             // state or orphaned output, delete and do not carry-over metadata
@@ -421,30 +413,30 @@ public abstract class AbstractBuildContext {
             continue;
           }
           // else, carry-over output resource metadata
-          holder = oldState.resources.get(resource);
+          holder = oldState.getResource(resource);
         } else {
           // old input that was not re-registered during this build, do not carry-over metadata
           continue;
         }
       }
 
-      state.resources.put(resource, holder);
+      state.putResource(resource, holder);
 
       // carry-over messages
-      Collection<Message> messages = oldState.resourceMessages.get(resource);
+      Collection<Message> messages = oldState.getResourceMessages(resource);
       if (messages != null && !messages.isEmpty()) {
-        state.resourceMessages.put(resource, messages);
+        state.setResourceMessages(resource, messages);
       }
 
       // carry-over attributes
-      Map<String, Serializable> attributes = oldState.resourceAttributes.get(resource);
+      Map<String, Serializable> attributes = oldState.getResourceAttributes(resource);
       if (attributes != null && !attributes.isEmpty()) {
-        state.resourceAttributes.put(resource, attributes);
+        state.setResourceAttributes(resource, attributes);
       }
 
-      Collection<File> outputFiles = oldState.resourceOutputs.get(resource);
+      Collection<File> outputFiles = oldState.getResourceOutputs(resource);
       if (outputFiles != null && !outputFiles.isEmpty()) {
-        state.resourceOutputs.put(resource, outputFiles);
+        state.setResourceOutputs(resource, outputFiles);
       }
     }
 
@@ -459,7 +451,7 @@ public abstract class AbstractBuildContext {
 
     // new messages are logged as soon as they are reported during the build
     // replay old messages so the user can still see them
-    Map<Object, Collection<Message>> allMessages = new HashMap<>(state.resourceMessages);
+    Map<Object, Collection<Message>> allMessages = new HashMap<>(state.resourceMessagesMap());
     if (!allMessages.keySet().equals(newMessages.keySet())) {
       log.info("Replaying recorded messages...");
       for (Map.Entry<Object, Collection<Message>> entry : allMessages.entrySet()) {
@@ -502,7 +494,7 @@ public abstract class AbstractBuildContext {
   }
 
   public void deleteOutput(File resource) throws IOException {
-    if (!oldState.outputs.contains(resource) && !state.outputs.contains(resource)) {
+    if (!oldState.isOutput(resource) && !state.isOutput(resource)) {
       // not an output known to this build context
       throw new IllegalArgumentException();
     }
@@ -512,12 +504,12 @@ public abstract class AbstractBuildContext {
     deletedResources.add(resource);
     processedResources.add(resource);
 
-    state.resources.remove(resource);
-    state.outputs.remove(resource);
+    state.removeResource(resource);
+    state.removeOutput(resource);
 
-    state.resourceAttributes.remove(resource);
-    state.resourceMessages.remove(resource);
-    state.resourceOutputs.remove(resource);
+    state.removeResourceAttributes(resource);
+    state.removeResourceMessages(resource);
+    state.removeResourceOutputs(resource);
   }
 
   protected void assertOpen() {
@@ -544,7 +536,7 @@ public abstract class AbstractBuildContext {
   }
 
   protected boolean isRegisteredResource(Object resource) {
-    return state.resources.containsKey(resource);
+    return state.isResource(resource);
   }
 
   protected <T> DefaultResourceMetadata<T> newResourceMetadata(DefaultBuildContextState state,

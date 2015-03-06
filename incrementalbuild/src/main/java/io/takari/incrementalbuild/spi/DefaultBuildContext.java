@@ -40,7 +40,7 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
 
   @Override
   public <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
-    if (state.outputs.contains(resource.getResource())) {
+    if (state.isOutput(resource.getResource())) {
       // input --> output --> output2 is not supported (until somebody provides a usecase)
       throw new UnsupportedOperationException();
     }
@@ -59,7 +59,7 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
     Object input = inputs.iterator().next();
 
     // input --> output --> output2 is not supported for now
-    if (oldState.outputs.contains(input)) {
+    if (oldState.isOutput(input)) {
       throw new IllegalStateException();
     }
 

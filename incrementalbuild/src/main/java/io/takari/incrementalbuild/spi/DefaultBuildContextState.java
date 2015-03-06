@@ -1,5 +1,8 @@
 package io.takari.incrementalbuild.spi;
 
+
+import static io.takari.incrementalbuild.spi.MMaps.put;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -16,6 +19,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,17 +35,17 @@ public class DefaultBuildContextState implements Serializable {
 
   final Map<String, Serializable> configuration;
 
-  final Set<File> outputs;
+  private final Set<File> outputs;
 
-  final Map<Object, ResourceHolder<?>> resources;
+  private final Map<Object, ResourceHolder<?>> resources;
 
-  final Map<Object, Collection<File>> resourceOutputs;
+  private final Map<Object, Collection<File>> resourceOutputs;
 
   private final Map<File, Collection<Object>> outputInputs;
 
-  final Map<Object, Map<String, Serializable>> resourceAttributes;
+  private final Map<Object, Map<String, Serializable>> resourceAttributes;
 
-  final Map<Object, Collection<Message>> resourceMessages;
+  private final Map<Object, Collection<Message>> resourceMessages;
 
   private DefaultBuildContextState(Map<String, Serializable> configuration //
       , Map<Object, ResourceHolder<?>> inputs //
@@ -287,7 +291,33 @@ public class DefaultBuildContextState implements Serializable {
     return Collections.unmodifiableMap(inverted);
   }
 
+  //
   // getters and settings
+  //
+
+  // resources
+
+  public void putResource(Object resource, ResourceHolder<?> holder) {
+    resources.put(resource, holder);
+  }
+
+  public ResourceHolder<?> getResource(Object resource) {
+    return resources.get(resource);
+  }
+
+  public boolean isResource(Object resource) {
+    return resources.containsKey(resource);
+  }
+
+  public ResourceHolder<?> removeResource(Object resource) {
+    return resources.remove(resource);
+  }
+
+  public Map<Object, ResourceHolder<?>> resourcesMap() {
+    return Collections.unmodifiableMap(resources);
+  }
+
+  // outputInputs
 
   public Collection<Object> getOutputInputs(File outputFile) {
     return outputInputs.get(outputFile);
@@ -297,11 +327,90 @@ public class DefaultBuildContextState implements Serializable {
     return MMaps.put(outputInputs, outputFile, input);
   }
 
+  // outputs
+
   public Collection<File> getOutputs() {
     return Collections.unmodifiableCollection(outputs);
   }
 
-  public boolean isOutput(File outputFile) {
+  public boolean isOutput(Object outputFile) {
     return outputs.contains(outputFile);
+  }
+
+  public boolean addOutput(File output) {
+    return outputs.add(output);
+  }
+
+  public boolean removeOutput(File output) {
+    return outputs.remove(output);
+  }
+
+  // resourceOutputs
+
+  public boolean putResourceOutput(Object resource, File output) {
+    return put(resourceOutputs, resource, output);
+  }
+
+  public Collection<File> getResourceOutputs(Object resource) {
+    return resourceOutputs.get(resource);
+  }
+
+  public Collection<File> setResourceOutputs(Object resource, Collection<File> outputs) {
+    return resourceOutputs.put(resource, outputs);
+  }
+
+  public Collection<File> removeResourceOutputs(Object resource) {
+    return resourceOutputs.remove(resource);
+  }
+
+  // resourceAttributes
+
+  public Map<String, Serializable> removeResourceAttributes(Object resource) {
+    return resourceAttributes.remove(resource);
+  }
+
+  public Map<String, Serializable> getResourceAttributes(Object resource) {
+    return resourceAttributes.get(resource);
+  }
+
+  public Serializable putResourceAttribute(Object resource, String key, Serializable value) {
+    Map<String, Serializable> attributes = resourceAttributes.get(resource);
+    if (attributes == null) {
+      attributes = new LinkedHashMap<String, Serializable>();
+      resourceAttributes.put(resource, attributes);
+    }
+    return attributes.put(key, value);
+  }
+
+  public Serializable getResourceAttribute(Object resource, String key) {
+    Map<String, Serializable> attributes = resourceAttributes.get(resource);
+    return attributes != null ? attributes.get(key) : null;
+  }
+
+  public Map<String, Serializable> setResourceAttributes(Object resource,
+      Map<String, Serializable> attributes) {
+    return resourceAttributes.put(resource, attributes);
+  }
+
+  // resourceMessages
+
+  public Collection<Message> removeResourceMessages(Object resource) {
+    return resourceMessages.remove(resource);
+  }
+
+  public Collection<Message> getResourceMessages(Object resource) {
+    return resourceMessages.get(resource);
+  }
+
+  public Collection<Message> setResourceMessages(Object resource, Collection<Message> messages) {
+    return resourceMessages.put(resource, messages);
+  }
+
+  public boolean addResourceMessage(Object resource, Message message) {
+    return put(resourceMessages, resource, message);
+  }
+
+  public Map<Object, Collection<Message>> resourceMessagesMap() {
+    return Collections.unmodifiableMap(resourceMessages);
   }
 }
