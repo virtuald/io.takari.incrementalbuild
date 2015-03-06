@@ -21,15 +21,12 @@ public class DefaultResource<T> extends DefaultResourceMetadata<T> implements Re
     if (!(output instanceof DefaultOutput)) {
       throw new IllegalArgumentException();
     }
-    context.associate(this, (DefaultOutput) output);
-    return (DefaultOutput) output;
+    return context.associate(this, (DefaultOutput) output);
   }
 
   @Override
   public DefaultOutput associateOutput(File outputFile) {
-    DefaultOutput output = context.processOutput(outputFile);
-    context.associate(this, output);
-    return output;
+    return context.associate(this, outputFile);
   }
 
   @Override

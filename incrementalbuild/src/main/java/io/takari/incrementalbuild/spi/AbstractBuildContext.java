@@ -37,9 +37,9 @@ public abstract class AbstractBuildContext {
 
   private final File stateFile;
 
-  private final DefaultBuildContextState state;
+  protected final DefaultBuildContextState state;
 
-  private final DefaultBuildContextState oldState;
+  protected final DefaultBuildContextState oldState;
 
   /**
    * Previous build state does not exist, cannot be read or configuration has changed. When
@@ -219,6 +219,12 @@ public abstract class AbstractBuildContext {
     return new FileState(file, lastModified, length);
   }
 
+  public DefaultResourceMetadata<File> registerInput(File inputFile) {
+    inputFile = normalize(inputFile);
+    return registerNormalizedResource(inputFile, inputFile.lastModified(),
+        inputFile.lastModified(), false);
+  }
+
   /**
    * Adds the resource to this build's resource set. The resource must exist, i.e. it's status must
    * not be REMOVED.
@@ -344,6 +350,10 @@ public abstract class AbstractBuildContext {
   public DefaultOutput processOutput(File outputFile) {
     outputFile = normalize(outputFile);
 
+    if (state.resources.containsKey(outputFile) != state.outputs.contains(outputFile)) {
+      throw new IllegalStateException("Cannot process input resource as output " + outputFile);
+    }
+
     registerNormalizedResource(outputFile, outputFile.lastModified(), outputFile.length(), true);
     processResource(outputFile);
     state.outputs.add(outputFile);
@@ -355,7 +365,7 @@ public abstract class AbstractBuildContext {
     return workspace.newOutputStream(output.getResource());
   }
 
-  public <T> void associate(DefaultResource<T> resource, DefaultOutput output) {
+  public <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
     if (resource.context != this) {
       throw new IllegalArgumentException();
     }
@@ -364,6 +374,12 @@ public abstract class AbstractBuildContext {
     }
 
     put(state.resourceOutputs, resource.getResource(), output.getResource());
+    return output;
+  }
+
+  public <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
+    DefaultOutput output = processOutput(outputFile);
+    return associate(resource, output);
   }
 
   public Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(
@@ -399,7 +415,7 @@ public abstract class AbstractBuildContext {
       if (holder == null) {
         if (oldState.outputs.contains(resource)) {
           // old output resource that was not re-processed or deleted during this build
-          if (!isOutputUptodate((File) resource)) {
+          if (!shouldCarryOverOutput((File) resource)) {
             // state or orphaned output, delete and do not carry-over metadata
             deleteOutput((File) resource);
             continue;
@@ -481,7 +497,7 @@ public abstract class AbstractBuildContext {
 
   }
 
-  protected abstract boolean isOutputUptodate(File resource);
+  protected abstract boolean shouldCarryOverOutput(File resource);
 
   protected void log(Object resource, int line, int column, String message,
       MessageSeverity severity, Throwable cause) {
@@ -534,5 +550,13 @@ public abstract class AbstractBuildContext {
     }
 
     closed = true;
+  }
+
+  protected boolean isProcessedResource(Object resource) {
+    return processedResources.contains(resource);
+  }
+
+  protected boolean isRegisteredResource(Object resource) {
+    return state.resources.containsKey(resource);
   }
 }

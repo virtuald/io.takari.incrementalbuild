@@ -23,7 +23,7 @@ public interface BuildContext {
    * @return {@link InputMetadata} representing the input file, never {@code null}.
    * @throws IllegalArgumentException if inputFile is not a file or cannot be read
    */
-  // public InputMetadata<File> registerInput(File inputFile);
+  public ResourceMetadata<File> registerInput(File inputFile);
 
   /**
    * Registers inputs identified by {@code basedir} and {@code includes}/{@code excludes} ant
@@ -55,17 +55,4 @@ public interface BuildContext {
   public Iterable<? extends Resource<File>> registerAndProcessInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException;
 
-  // public Output<File> processOutput(File outputFile);
-
-  /**
-   * Returns all inputs registered with this {@link BuildContext} during current and previous
-   * builds.
-   */
-  // public Iterable<? extends InputMetadata<File>> getRegisteredInputs();
-
-  /**
-   * Returns all outputs processed by this {@link BuildContext} during current build or carried over
-   * from previous build.
-   */
-  // public Iterable<? extends OutputMetadata<File>> getProcessedOutputs();
 }

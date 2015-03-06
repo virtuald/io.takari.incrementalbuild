@@ -33,9 +33,37 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
   }
 
   @Override
-  protected boolean isOutputUptodate(File resource) {
+  public <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
+    // this can be used to associated multiple inputs with the same output, so not supported
+    throw new UnsupportedOperationException();
+  }
 
+  @Override
+  public <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
+    if (state.outputs.contains(resource.getResource())) {
+      // input --> output --> output2 is not supported (until somebody provides a usecase)
+      throw new UnsupportedOperationException();
+    }
+    return super.associate(resource, outputFile);
+  }
 
+  @Override
+  protected boolean shouldCarryOverOutput(File resource) {
+    // output should be carried over if it's input is registered but not processed during this build
+    Collection<Object> inputs = oldState.outputInputs.get(resource);
+    if (inputs == null || inputs.size() != 1) {
+      // this implementation only supports 1..* input/output association
+      // it is not possible to create output without one and only onle associated input
+      throw new IllegalStateException();
+    }
+    Object input = inputs.iterator().next();
+
+    // input --> output --> output2 is not supported for now
+    if (oldState.outputs.contains(input)) {
+      throw new IllegalStateException();
+    }
+
+    return isRegisteredResource(input) && !isProcessedResource(input);
   }
 
 }
