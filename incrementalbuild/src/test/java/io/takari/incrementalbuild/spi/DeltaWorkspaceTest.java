@@ -2,7 +2,7 @@ package io.takari.incrementalbuild.spi;
 
 import static io.takari.maven.testing.TestResources.touch;
 import static org.junit.Assert.assertEquals;
-import io.takari.incrementalbuild.BuildContext.InputMetadata;
+import io.takari.incrementalbuild.ResourceMetadata;
 import io.takari.incrementalbuild.ResourceStatus;
 import io.takari.incrementalbuild.workspace.Workspace;
 
@@ -86,7 +86,7 @@ public class DeltaWorkspaceTest extends AbstractBuildContextTest {
   @Test
   public void testGetRegisteredInputs() throws Exception {
     DeltaWorkspace workspace;
-    DefaultBuildContext<?> ctx;
+    TestBuildContext ctx;
 
     // initial build
     ctx = newBuildContext();
@@ -135,7 +135,7 @@ public class DeltaWorkspaceTest extends AbstractBuildContextTest {
     File basedir = temp.newFolder("basedir");
 
     DeltaWorkspace workspace;
-    DefaultBuildContext<?> ctx;
+    TestBuildContext ctx;
 
     // initial build
     newBuildContext().commit();
@@ -145,7 +145,7 @@ public class DeltaWorkspaceTest extends AbstractBuildContextTest {
     File a = temp.newFile("basedir/a").getCanonicalFile();
     workspace.added.add(a);
     ctx = newBuildContext(workspace);
-    InputMetadata<File> input = only(ctx.registerInputs(basedir, null, null));
+    ResourceMetadata<File> input = only(ctx.registerInputs(basedir, null, null));
     assertEquals(ResourceStatus.NEW, input.getStatus());
     input.process();
     ctx.commit();

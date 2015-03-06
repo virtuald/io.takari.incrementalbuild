@@ -1,10 +1,5 @@
 package io.takari.incrementalbuild.spi;
 
-import static io.takari.incrementalbuild.BuildContext.ResourceStatus.MODIFIED;
-import static io.takari.incrementalbuild.BuildContext.ResourceStatus.NEW;
-import static io.takari.incrementalbuild.BuildContext.ResourceStatus.UNMODIFIED;
-import io.takari.incrementalbuild.BuildContext.InputMetadata;
-import io.takari.incrementalbuild.BuildContext.OutputMetadata;
 import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.ResourceStatus;
 

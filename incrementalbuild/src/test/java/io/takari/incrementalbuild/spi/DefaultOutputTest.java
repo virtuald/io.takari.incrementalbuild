@@ -2,7 +2,6 @@ package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext;
 import io.takari.incrementalbuild.Output;
-import io.takari.incrementalbuild.spi.DefaultBuildContext;
 
 import java.io.File;
 import java.io.Serializable;
@@ -18,7 +17,7 @@ public class DefaultOutputTest {
   @Rule
   public final TemporaryFolder temp = new TemporaryFolder();
 
-  private DefaultBuildContext<?> newBuildContext() {
+  private DefaultBuildContext newBuildContext() {
     File stateFile = new File(temp.getRoot(), "buildstate.ctx");
     return new TestBuildContext(stateFile, Collections.<String, Serializable>emptyMap());
   }
