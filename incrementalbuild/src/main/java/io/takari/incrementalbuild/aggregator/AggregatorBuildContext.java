@@ -29,6 +29,6 @@ public interface AggregatorBuildContext {
   /**
    * Registers aggregate output with the build context.
    */
-  public AggregateOutput registerOutput(File output);
+  public AggregateMetadata registerOutput(File output);
 
 }

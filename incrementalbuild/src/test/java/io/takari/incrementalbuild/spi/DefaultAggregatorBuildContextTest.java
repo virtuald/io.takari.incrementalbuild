@@ -6,7 +6,7 @@ import io.takari.incrementalbuild.Output;
 import io.takari.incrementalbuild.aggregator.AggregateCreator;
 import io.takari.incrementalbuild.aggregator.AggregateInput;
 import io.takari.incrementalbuild.aggregator.InputProcessor;
-import io.takari.incrementalbuild.aggregator.internal.DefaultAggregateOutput;
+import io.takari.incrementalbuild.aggregator.internal.DefaultAggregateMetadata;
 import io.takari.incrementalbuild.aggregator.internal.DefaultAggregatorBuildContext;
 
 import java.io.BufferedWriter;
@@ -54,7 +54,7 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
     FileIndexer indexer = new FileIndexer();
     DefaultBuildContext<?> ctx = newBuildContext();
     DefaultAggregatorBuildContext actx = new DefaultAggregatorBuildContext(ctx);
-    DefaultAggregateOutput output = actx.registerOutput(outputFile);
+    DefaultAggregateMetadata output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
     ctx.commit();
@@ -130,7 +130,7 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
     FileIndexer indexer = new FileIndexer();
     DefaultBuildContext<?> ctx = newBuildContext();
     DefaultAggregatorBuildContext actx = new DefaultAggregatorBuildContext(ctx);
-    DefaultAggregateOutput output = actx.registerOutput(outputFile);
+    DefaultAggregateMetadata output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
     ctx.commit();
@@ -149,7 +149,7 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
     // initial build
     DefaultBuildContext<?> ctx = newBuildContext();
     DefaultAggregatorBuildContext actx = new DefaultAggregatorBuildContext(ctx);
-    DefaultAggregateOutput output = actx.registerOutput(outputFile);
+    DefaultAggregateMetadata output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null, new InputProcessor() {
       @Override
       public void process(Input<File> input) throws IOException {

@@ -302,7 +302,7 @@ public abstract class AbstractBuildContext {
     return new DefaultResource<T>(this, state, resource);
   }
 
-  private <T> void processResource(final T resource) {
+  protected <T> void processResource(final T resource) {
     processedResources.add(resource);
 
     // reset all metadata associated with the resource during this build

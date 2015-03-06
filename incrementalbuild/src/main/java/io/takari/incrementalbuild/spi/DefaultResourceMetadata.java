@@ -18,7 +18,8 @@ public class DefaultResourceMetadata<T> implements ResourceMetadata<T> {
 
   final T resource;
 
-  DefaultResourceMetadata(AbstractBuildContext context, DefaultBuildContextState state, T resource) {
+  protected DefaultResourceMetadata(AbstractBuildContext context, DefaultBuildContextState state,
+      T resource) {
     this.context = context;
     this.state = state;
     this.resource = resource;
@@ -70,4 +71,7 @@ public class DefaultResourceMetadata<T> implements ResourceMetadata<T> {
     return context == other.context && state == other.state && resource.equals(other.resource);
   }
 
+  protected AbstractBuildContext getContext() {
+    return context;
+  }
 }

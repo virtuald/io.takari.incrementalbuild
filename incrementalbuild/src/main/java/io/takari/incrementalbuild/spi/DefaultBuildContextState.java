@@ -37,7 +37,7 @@ public class DefaultBuildContextState implements Serializable {
 
   final Map<Object, Collection<File>> resourceOutputs;
 
-  final Map<File, Collection<Object>> outputInputs;
+  private final Map<File, Collection<Object>> outputInputs;
 
   final Map<Object, Map<String, Serializable>> resourceAttributes;
 
@@ -285,5 +285,15 @@ public class DefaultBuildContextState implements Serializable {
       }
     }
     return Collections.unmodifiableMap(inverted);
+  }
+
+  // getters and settings
+
+  public Collection<Object> getOutputInputs(File outputFile) {
+    return outputInputs.get(outputFile);
+  }
+
+  public boolean putOutputInput(File outputFile, Object input) {
+    return MMaps.put(outputInputs, outputFile, input);
   }
 }
