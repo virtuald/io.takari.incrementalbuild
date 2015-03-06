@@ -4,7 +4,7 @@ import io.takari.incrementalbuild.MessageSeverity;
 
 import java.io.Serializable;
 
-class Message implements Serializable {
+public class Message implements Serializable {
 
   private static final long serialVersionUID = 7798138299696868415L;
 

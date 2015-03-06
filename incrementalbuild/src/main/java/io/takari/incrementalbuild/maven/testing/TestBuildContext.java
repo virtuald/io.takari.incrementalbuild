@@ -1,7 +1,7 @@
 package io.takari.incrementalbuild.maven.testing;
 
 import io.takari.incrementalbuild.MessageSeverity;
-import io.takari.incrementalbuild.maven.internal.MavenBuildContext;
+import io.takari.incrementalbuild.maven.internal.MavenBuildContextFinalizer;
 import io.takari.incrementalbuild.maven.internal.MavenIncrementalConventions;
 import io.takari.incrementalbuild.maven.internal.MojoConfigurationDigester;
 import io.takari.incrementalbuild.maven.internal.ProjectWorkspace;
@@ -17,7 +17,7 @@ import org.apache.maven.plugin.MojoExecution;
 import org.apache.maven.project.MavenProject;
 
 // this is explicitly bound in IncrementalBuildRuntime.addGuiceModules
-class TestBuildContext extends MavenBuildContext {
+class TestBuildContext extends MavenBuildContextFinalizer {
 
   private final IncrementalBuildLog logger;
 

@@ -17,9 +17,9 @@ import org.apache.maven.execution.scope.MojoExecutionScoped;
 
 /**
  * Singleton-friendly {@link BuildContext} implementation. Uses {@link Provider} to locate currently
- * active {@link MavenBuildContext} instance.
+ * active {@link MavenBuildContextFinalizer} instance.
  * <p>
- * {@link MavenBuildContext} is {@link MojoExecutionScoped} and its lifecycle is bound to lifecycle
+ * {@link MavenBuildContextFinalizer} is {@link MojoExecutionScoped} and its lifecycle is bound to lifecycle
  * of the corresponding mojo execution, that is, it is created right before the mojo execution
  * starts and discarded immediately after the mojo execution ends. Most Maven plugin components,
  * however, are singletons, which means they are created when plugin class realm is created at the
@@ -33,10 +33,10 @@ public class SingletonBuildContext implements BuildContext {
 
   public static final String HINT = "singleton";
 
-  private Provider<MavenBuildContext> delegate;
+  private Provider<MavenBuildContextFinalizer> delegate;
 
   @Inject
-  public SingletonBuildContext(Provider<MavenBuildContext> delegate) {
+  public SingletonBuildContext(Provider<MavenBuildContextFinalizer> delegate) {
     this.delegate = delegate;
   }
 
