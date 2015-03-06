@@ -1,12 +1,6 @@
 package io.takari.incrementalbuild.aggregator;
 
-import io.takari.incrementalbuild.Output;
-import io.takari.incrementalbuild.Resource;
-import io.takari.incrementalbuild.ResourceMetadata;
-
 import java.io.File;
-import java.io.IOException;
-import java.util.Collection;
 
 /**
  * Convenience interface to create aggregate outputs
@@ -31,56 +25,6 @@ import java.util.Collection;
  * </pre>
  */
 public interface AggregatorBuildContext {
-
-  /**
-   * Aggregation function. Only called when new output needs to be generated.
-   */
-  public static interface AggregateCreator {
-
-    /**
-     * Creates aggregate output given the inputs.
-     */
-    public void create(Output<File> output, Iterable<AggregateInput> inputs) throws IOException;
-  }
-
-  /**
-   * Aggregate input processor. Useful to glean information from input resource and store it in
-   * Input attributes.
-   */
-  public static interface InputProcessor {
-    public void process(Resource<File> input) throws IOException;
-  }
-
-  /**
-   * Represents aggregate output being created.
-   */
-  public static interface AggregateOutput {
-
-    public File getResource();
-
-    /**
-     * Creates the aggregate if there are new, changed or removed inputs.
-     * 
-     * @returns {@code true} if the new output was created, {@code false} if the output was
-     *          up-to-date
-     */
-    public boolean createIfNecessary(AggregateCreator creator) throws IOException;
-
-    /**
-     * Adds inputs to the aggregate
-     */
-    public void addInputs(File basedir, Collection<String> includes, Collection<String> excludes,
-        InputProcessor... processors) throws IOException;
-  }
-
-  // TODO this will go away once #getRelativePath moves to InputMetadata
-  public static interface AggregateInput extends ResourceMetadata<File> {
-
-    /**
-     * When input was registered using glob matching, returns base directory of the match.
-     */
-    public File getBasedir();
-  }
 
   /**
    * Registers aggregate output with the build context.

@@ -3,11 +3,11 @@ package io.takari.incrementalbuild.spi;
 import io.takari.incrementalbuild.BuildContext.Input;
 import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.Output;
-import io.takari.incrementalbuild.aggregator.AggregatorBuildContext.AggregateCreator;
-import io.takari.incrementalbuild.aggregator.AggregatorBuildContext.AggregateInput;
-import io.takari.incrementalbuild.aggregator.AggregatorBuildContext.InputProcessor;
+import io.takari.incrementalbuild.aggregator.AggregateCreator;
+import io.takari.incrementalbuild.aggregator.AggregateInput;
+import io.takari.incrementalbuild.aggregator.InputProcessor;
+import io.takari.incrementalbuild.aggregator.internal.DefaultAggregateOutput;
 import io.takari.incrementalbuild.aggregator.internal.DefaultAggregatorBuildContext;
-import io.takari.incrementalbuild.aggregator.internal.DefaultAggregatorBuildContext.DefaultAggregateOutput;
 
 import java.io.BufferedWriter;
 import java.io.File;

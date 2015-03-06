@@ -204,7 +204,7 @@ public abstract class AbstractBuildContext {
     }
   }
 
-  private DefaultResourceMetadata<File> registerNormalizedResource(File resourceFile,
+  protected DefaultResourceMetadata<File> registerNormalizedResource(File resourceFile,
       long lastModified, long length, boolean replace) {
     if (!state.resources.containsKey(resourceFile)) {
       registerResource(newFileState(resourceFile, lastModified, length), replace);
