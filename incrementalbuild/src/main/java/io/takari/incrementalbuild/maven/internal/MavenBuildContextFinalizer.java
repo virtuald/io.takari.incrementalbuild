@@ -16,14 +16,14 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.maven.execution.MojoExecutionEvent;
+import org.apache.maven.execution.MojoExecutionListener;
 import org.apache.maven.execution.scope.MojoExecutionScoped;
-import org.apache.maven.execution.scope.WeakMojoExecutionListener;
 import org.apache.maven.plugin.MojoExecutionException;
 
 
 @Named
 @MojoExecutionScoped
-public class MavenBuildContextFinalizer implements WeakMojoExecutionListener {
+public class MavenBuildContextFinalizer implements MojoExecutionListener {
 
   private final MessageSink messageSink;
 
