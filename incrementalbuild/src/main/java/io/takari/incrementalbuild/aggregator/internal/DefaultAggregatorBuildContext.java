@@ -10,12 +10,11 @@ import io.takari.incrementalbuild.aggregator.AggregateInput;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext;
 import io.takari.incrementalbuild.aggregator.InputProcessor;
 import io.takari.incrementalbuild.spi.AbstractBuildContext;
+import io.takari.incrementalbuild.spi.BuildContextConfiguration;
 import io.takari.incrementalbuild.spi.DefaultOutput;
-import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -30,9 +29,8 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
 
   private final Map<File, Collection<File>> outputInputs = new HashMap<>();
 
-  public DefaultAggregatorBuildContext(Workspace workspace, File stateFile,
-      Map<String, Serializable> configuration) {
-    super(workspace, stateFile, configuration);
+  public DefaultAggregatorBuildContext(BuildContextConfiguration configuration) {
+    super(configuration);
   }
 
   @Override

@@ -3,11 +3,10 @@ package io.takari.incrementalbuild.maven.internal;
 import io.takari.incrementalbuild.BasicBuildContext;
 import io.takari.incrementalbuild.Output;
 import io.takari.incrementalbuild.ResourceMetadata;
+import io.takari.incrementalbuild.spi.BuildContextConfiguration;
 import io.takari.incrementalbuild.spi.DefaultBasicBuildContextImpl;
-import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
-import java.io.IOException;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -25,10 +24,8 @@ public class MavenBasicBuildContext implements BasicBuildContext {
   @MojoExecutionScoped
   public static class MojoExecutionScopedBasicBuildContext extends DefaultBasicBuildContextImpl {
     @Inject
-    public MojoExecutionScopedBasicBuildContext(Workspace workspace,
-        MavenIncrementalConventions convensions, MojoConfigurationDigester digester)
-        throws IOException {
-      super(workspace, convensions.getExecutionStateLocation(), digester.digest());
+    public MojoExecutionScopedBasicBuildContext(BuildContextConfiguration configuration) {
+      super(configuration);
     }
   }
 

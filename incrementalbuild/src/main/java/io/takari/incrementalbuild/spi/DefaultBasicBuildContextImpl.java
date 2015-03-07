@@ -2,17 +2,13 @@ package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BasicBuildContext;
 import io.takari.incrementalbuild.ResourceStatus;
-import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
-import java.io.Serializable;
-import java.util.Map;
 
 public class DefaultBasicBuildContextImpl extends AbstractBuildContext implements BasicBuildContext {
 
-  public DefaultBasicBuildContextImpl(Workspace workspace, File stateFile,
-      Map<String, Serializable> configuration) {
-    super(workspace, stateFile, configuration);
+  public DefaultBasicBuildContextImpl(BuildContextConfiguration configuration) {
+    super(configuration);
   }
 
   @Override

@@ -2,10 +2,8 @@ package io.takari.incrementalbuild.maven.testing;
 
 import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.maven.internal.MavenBuildContext;
-import io.takari.incrementalbuild.maven.internal.MavenIncrementalConventions;
-import io.takari.incrementalbuild.maven.internal.MojoConfigurationDigester;
+import io.takari.incrementalbuild.spi.BuildContextConfiguration;
 import io.takari.incrementalbuild.spi.DefaultOutput;
-import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
 import java.io.IOException;
@@ -18,9 +16,9 @@ class TestBuildContext extends MavenBuildContext.MojoExecutionScopedBuildContext
   private final IncrementalBuildLog logger;
 
   @Inject
-  public TestBuildContext(Workspace workspace, MavenIncrementalConventions convensions,
-      MojoConfigurationDigester digester, IncrementalBuildLog logger) throws IOException {
-    super(workspace, convensions, digester);
+  public TestBuildContext(BuildContextConfiguration configuration, IncrementalBuildLog logger)
+      throws IOException {
+    super(configuration);
     this.logger = logger;
   }
 

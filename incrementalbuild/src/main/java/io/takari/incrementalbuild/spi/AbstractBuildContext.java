@@ -62,6 +62,10 @@ public abstract class AbstractBuildContext {
    */
   private final Set<Object> processedResources = new HashSet<>();
 
+  protected AbstractBuildContext(BuildContextConfiguration configuration) {
+    this(configuration.getWorkspace(), configuration.getStateFile(), configuration.getParameters());
+  }
+
   protected AbstractBuildContext(Workspace workspace, File stateFile,
       Map<String, Serializable> configuration) {
 
