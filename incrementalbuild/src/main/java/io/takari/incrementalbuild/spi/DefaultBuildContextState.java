@@ -185,7 +185,7 @@ public class DefaultBuildContextState implements Serializable {
         final long start = System.currentTimeMillis();
 
         Map<String, Serializable> configuration = readMap(is);
-        Set<File> outputs = new HashSet<>(DefaultBuildContextState.<File>readCollection(is));
+        Set<File> outputs = readSet(is);
         Map<Object, ResourceHolder<?>> resources = readMap(is);
 
         Map<Object, Collection<File>> resourceOutputs = readMultimap(is);
@@ -261,6 +261,14 @@ public class DefaultBuildContextState implements Serializable {
       collection.add((V) ois.readObject());
     }
     return Collections.unmodifiableCollection(collection);
+  }
+
+  private static <V> Set<V> readSet(ObjectInputStream ois) throws IOException,
+      ClassNotFoundException {
+    Collection<V> collection = readCollection(ois);
+    return collection != null
+        ? Collections.<V>unmodifiableSet(new HashSet<V>(collection))
+        : Collections.<V>emptySet();
   }
 
   @SuppressWarnings("unchecked")
