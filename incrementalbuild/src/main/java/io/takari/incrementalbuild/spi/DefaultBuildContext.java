@@ -33,13 +33,13 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
   }
 
   @Override
-  public <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
+  protected <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
     // this can be used to associated multiple inputs with the same output, so not supported
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
+  protected <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
     if (state.isOutput(resource.getResource())) {
       // input --> output --> output2 is not supported (until somebody provides a usecase)
       throw new UnsupportedOperationException();
@@ -66,4 +66,19 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
     return isRegisteredResource(input) && !isProcessedResource(input);
   }
 
+  @Override
+  public void markSkipExecution() {
+    super.markSkipExecution();
+  }
+
+  @Override
+  public DefaultResourceMetadata<File> registerInput(File inputFile) {
+    return super.registerInput(inputFile);
+  }
+
+  @Override
+  public Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
+      Collection<String> includes, Collection<String> excludes) throws IOException {
+    return super.registerInputs(basedir, includes, excludes);
+  }
 }

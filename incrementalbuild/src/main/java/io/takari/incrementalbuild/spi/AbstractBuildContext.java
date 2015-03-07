@@ -62,7 +62,7 @@ public abstract class AbstractBuildContext {
    */
   private final Set<Object> processedResources = new HashSet<>();
 
-  public AbstractBuildContext(Workspace workspace, File stateFile,
+  protected AbstractBuildContext(Workspace workspace, File stateFile,
       Map<String, Serializable> configuration) {
 
     // preconditions
@@ -142,14 +142,14 @@ public abstract class AbstractBuildContext {
     return result;
   }
 
-  public boolean isEscalated() {
+  protected boolean isEscalated() {
     return escalated;
   }
 
   /**
    * Registers matching resources as this build's input set.
    */
-  public Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
+  protected Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
     basedir = normalize(basedir);
     final List<DefaultResourceMetadata<File>> result = new ArrayList<>();
@@ -216,7 +216,7 @@ public abstract class AbstractBuildContext {
     return new FileState(file, lastModified, length);
   }
 
-  public DefaultResourceMetadata<File> registerInput(File inputFile) {
+  protected DefaultResourceMetadata<File> registerInput(File inputFile) {
     inputFile = normalize(inputFile);
     return registerNormalizedResource(inputFile, inputFile.lastModified(),
         inputFile.lastModified(), false);
@@ -248,7 +248,7 @@ public abstract class AbstractBuildContext {
   /**
    * Returns resource status compared to the previous build.
    */
-  public ResourceStatus getResourceStatus(Object resource) {
+  protected ResourceStatus getResourceStatus(Object resource) {
     if (deletedResources.contains(resource)) {
       return ResourceStatus.REMOVED;
     }
@@ -283,7 +283,7 @@ public abstract class AbstractBuildContext {
     return holder.getStatus();
   }
 
-  public <T> DefaultResource<T> processResource(DefaultResourceMetadata<T> metadata) {
+  protected <T> DefaultResource<T> processResource(DefaultResourceMetadata<T> metadata) {
     final T resource = metadata.getResource();
 
     if (metadata.context != this || !state.isResource(resource)) {
@@ -310,14 +310,14 @@ public abstract class AbstractBuildContext {
 
   // simple key/value pairs
 
-  public <T extends Serializable> Serializable setResourceAttribute(Object resource, String key,
+  protected <T extends Serializable> Serializable setResourceAttribute(Object resource, String key,
       T value) {
     state.putResourceAttribute(resource, key, value);
     // TODO odd this always returns previous build state. need to think about it
     return oldState.getResourceAttribute(resource, key);
   }
 
-  public <T extends Serializable> T getResourceAttribute(DefaultBuildContextState state,
+  protected <T extends Serializable> T getResourceAttribute(DefaultBuildContextState state,
       Object resource, String key, Class<T> clazz) {
     Map<String, Serializable> attributes = state.getResourceAttributes(resource);
     return attributes != null ? clazz.cast(attributes.get(key)) : null;
@@ -325,7 +325,7 @@ public abstract class AbstractBuildContext {
 
   // persisted messages
 
-  public void addMessage(Object resource, int line, int column, String message,
+  protected void addMessage(Object resource, int line, int column, String message,
       MessageSeverity severity, Throwable cause) {
     // this is likely called as part of builder error handling logic.
     // to make IAE easier to troubleshoot, link cause to the exception thrown
@@ -339,7 +339,7 @@ public abstract class AbstractBuildContext {
     log(resource, line, column, message, severity, cause);
   }
 
-  public DefaultOutput processOutput(File outputFile) {
+  protected DefaultOutput processOutput(File outputFile) {
     outputFile = normalize(outputFile);
 
     if (state.isResource(outputFile) != state.isOutput(outputFile)) {
@@ -353,11 +353,11 @@ public abstract class AbstractBuildContext {
     return new DefaultOutput(this, state, outputFile);
   }
 
-  public OutputStream newOutputStream(DefaultOutput output) throws IOException {
+  protected OutputStream newOutputStream(DefaultOutput output) throws IOException {
     return workspace.newOutputStream(output.getResource());
   }
 
-  public <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
+  protected <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
     if (resource.context != this) {
       throw new IllegalArgumentException();
     }
@@ -369,12 +369,12 @@ public abstract class AbstractBuildContext {
     return output;
   }
 
-  public <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
+  protected <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
     DefaultOutput output = processOutput(outputFile);
     return associate(resource, output);
   }
 
-  public Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(
+  protected Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(
       DefaultBuildContextState state, Object resource) {
     Collection<File> outputFiles = state.getResourceOutputs(resource);
     if (outputFiles == null || outputFiles.isEmpty()) {
@@ -493,7 +493,7 @@ public abstract class AbstractBuildContext {
     }
   }
 
-  public void deleteOutput(File resource) throws IOException {
+  protected void deleteOutput(File resource) throws IOException {
     if (!oldState.isOutput(resource) && !state.isOutput(resource)) {
       // not an output known to this build context
       throw new IllegalArgumentException();
@@ -523,7 +523,7 @@ public abstract class AbstractBuildContext {
    * over to the next build as-is. No context modification operations (register* or process) are
    * permitted after this call.
    */
-  public void markSkipExecution() {
+  protected void markSkipExecution() {
     if (!processedResources.isEmpty()) {
       throw new IllegalStateException();
     }

@@ -35,4 +35,13 @@ public class DefaultBasicBuildContextImpl extends AbstractBuildContext implement
     return false;
   }
 
+  @Override
+  public DefaultOutput processOutput(File outputFile) {
+    return super.processOutput(outputFile);
+  }
+
+  @Override
+  public DefaultResourceMetadata<File> registerInput(File inputFile) {
+    return super.registerInput(inputFile);
+  }
 }
