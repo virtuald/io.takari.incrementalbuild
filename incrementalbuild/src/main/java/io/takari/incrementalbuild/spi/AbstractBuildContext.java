@@ -63,12 +63,12 @@ public abstract class AbstractBuildContext {
    */
   private final Set<Object> processedResources = new HashSet<>();
 
-  protected AbstractBuildContext(BuildContextConfiguration configuration) {
-    this(configuration.getWorkspace(), configuration.getStateFile(), configuration.getParameters());
+  protected AbstractBuildContext(BuildContextEnvironment env) {
+    this(env.getWorkspace(), env.getStateFile(), env.getParameters(), env.getFinalizer());
   }
 
   protected AbstractBuildContext(Workspace workspace, File stateFile,
-      Map<String, Serializable> configuration) {
+      Map<String, Serializable> configuration, BuildContextFinalizer finalizer) {
 
     // preconditions
     if (workspace == null) {
@@ -106,6 +106,8 @@ public abstract class AbstractBuildContext {
     } else {
       log.info("Performing incremental build");
     }
+
+    finalizer.registerContext(this);
   }
 
   private boolean getConfigurationChanged() {

@@ -1,7 +1,8 @@
 package io.takari.incrementalbuild.maven.internal;
 
 import io.takari.incrementalbuild.maven.internal.digest.MojoConfigurationDigester;
-import io.takari.incrementalbuild.spi.BuildContextConfiguration;
+import io.takari.incrementalbuild.spi.BuildContextEnvironment;
+import io.takari.incrementalbuild.spi.BuildContextFinalizer;
 import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
@@ -18,17 +19,19 @@ import org.apache.maven.execution.scope.MojoExecutionScoped;
 
 @Named
 @MojoExecutionScoped
-public class MavenBuildContextConfiguration implements BuildContextConfiguration {
+public class MavenBuildContextConfiguration implements BuildContextEnvironment {
 
   private final ProjectWorkspace workspace;
   private final File stateFile;
-  private Map<String, Serializable> parameters;
+  private final Map<String, Serializable> parameters;
+  private final MavenBuildContextFinalizer finalizer;
 
   @Inject
   public MavenBuildContextConfiguration(ProjectWorkspace workspace,
-      MavenIncrementalConventions conventions, MojoConfigurationDigester digester)
-      throws IOException {
+      MavenIncrementalConventions conventions, MojoConfigurationDigester digester,
+      MavenBuildContextFinalizer finalizer) throws IOException {
     this.workspace = workspace;
+    this.finalizer = finalizer;
     this.stateFile = conventions.getExecutionStateLocation();
     this.parameters = digester.digest();
   }
@@ -48,4 +51,8 @@ public class MavenBuildContextConfiguration implements BuildContextConfiguration
     return parameters;
   }
 
+  @Override
+  public BuildContextFinalizer getFinalizer() {
+    return finalizer;
+  }
 }

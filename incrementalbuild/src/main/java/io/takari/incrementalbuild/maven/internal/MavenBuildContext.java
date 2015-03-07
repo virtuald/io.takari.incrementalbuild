@@ -3,7 +3,7 @@ package io.takari.incrementalbuild.maven.internal;
 import io.takari.incrementalbuild.BuildContext;
 import io.takari.incrementalbuild.Resource;
 import io.takari.incrementalbuild.ResourceMetadata;
-import io.takari.incrementalbuild.spi.BuildContextConfiguration;
+import io.takari.incrementalbuild.spi.BuildContextEnvironment;
 import io.takari.incrementalbuild.spi.DefaultBuildContext;
 
 import java.io.File;
@@ -39,13 +39,14 @@ public class MavenBuildContext implements BuildContext {
   public static class MojoExecutionScopedBuildContext extends DefaultBuildContext {
 
     @Inject
-    public MojoExecutionScopedBuildContext(BuildContextConfiguration configuration) {
+    public MojoExecutionScopedBuildContext(BuildContextEnvironment configuration) {
       super(configuration);
     }
   }
 
   private final Provider<MojoExecutionScopedBuildContext> provider;
 
+  @Inject
   public MavenBuildContext(Provider<MojoExecutionScopedBuildContext> delegate) {
     this.provider = delegate;
   }

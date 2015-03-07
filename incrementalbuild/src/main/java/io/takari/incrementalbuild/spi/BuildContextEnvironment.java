@@ -6,7 +6,7 @@ import java.io.File;
 import java.io.Serializable;
 import java.util.Map;
 
-public interface BuildContextConfiguration {
+public interface BuildContextEnvironment {
 
   public File getStateFile();
 
@@ -15,4 +15,9 @@ public interface BuildContextConfiguration {
   public Workspace getWorkspace();
 
   public Map<String, Serializable> getParameters();
+
+  /**
+   * Optional context finalizer.
+   */
+  public BuildContextFinalizer getFinalizer();
 }

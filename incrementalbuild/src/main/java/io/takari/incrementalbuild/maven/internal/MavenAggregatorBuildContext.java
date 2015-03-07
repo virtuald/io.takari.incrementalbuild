@@ -3,7 +3,7 @@ package io.takari.incrementalbuild.maven.internal;
 import io.takari.incrementalbuild.aggregator.AggregateMetadata;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext;
 import io.takari.incrementalbuild.aggregator.internal.DefaultAggregatorBuildContext;
-import io.takari.incrementalbuild.spi.BuildContextConfiguration;
+import io.takari.incrementalbuild.spi.BuildContextEnvironment;
 
 import java.io.File;
 
@@ -25,7 +25,7 @@ public class MavenAggregatorBuildContext implements AggregatorBuildContext {
       extends DefaultAggregatorBuildContext {
 
     @Inject
-    public MojoExecutionScopedAggregatorBuildContext(BuildContextConfiguration configuration) {
+    public MojoExecutionScopedAggregatorBuildContext(BuildContextEnvironment configuration) {
       super(configuration);
     }
   }

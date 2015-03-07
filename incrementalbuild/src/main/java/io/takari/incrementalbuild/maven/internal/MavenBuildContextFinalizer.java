@@ -2,12 +2,14 @@ package io.takari.incrementalbuild.maven.internal;
 
 import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.spi.AbstractBuildContext;
+import io.takari.incrementalbuild.spi.BuildContextFinalizer;
 import io.takari.incrementalbuild.spi.Message;
 import io.takari.incrementalbuild.spi.MessageSinkAdaptor;
 import io.takari.incrementalbuild.workspace.MessageSink;
 import io.takari.incrementalbuild.workspace.MessageSink2;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
@@ -17,24 +19,26 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.apache.maven.execution.MojoExecutionEvent;
-import org.apache.maven.execution.MojoExecutionListener;
 import org.apache.maven.execution.scope.MojoExecutionScoped;
+import org.apache.maven.execution.scope.WeakMojoExecutionListener;
 import org.apache.maven.plugin.MojoExecutionException;
 
 
 @Named
 @MojoExecutionScoped
-public class MavenBuildContextFinalizer implements MojoExecutionListener {
+public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, BuildContextFinalizer {
 
   private final MessageSink messageSink;
 
-  private final List<AbstractBuildContext> contexts;
+  private final List<AbstractBuildContext> contexts = new ArrayList<>();
 
   @Inject
-  public MavenBuildContextFinalizer(@Nullable MessageSink messageSink,
-      List<AbstractBuildContext> contexts) {
+  public MavenBuildContextFinalizer(@Nullable MessageSink messageSink) {
     this.messageSink = messageSink;
-    this.contexts = contexts;
+  }
+
+  public void registerContext(AbstractBuildContext context) {
+    contexts.add(context);
   }
 
   @Override

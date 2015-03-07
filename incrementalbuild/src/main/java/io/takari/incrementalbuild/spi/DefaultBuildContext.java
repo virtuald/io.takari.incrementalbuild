@@ -11,7 +11,7 @@ import java.util.List;
 
 public class DefaultBuildContext extends AbstractBuildContext implements BuildContext {
 
-  public DefaultBuildContext(BuildContextConfiguration configuration) {
+  public DefaultBuildContext(BuildContextEnvironment configuration) {
     super(configuration);
   }
 

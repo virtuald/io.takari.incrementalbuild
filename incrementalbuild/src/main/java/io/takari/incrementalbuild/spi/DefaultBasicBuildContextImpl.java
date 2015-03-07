@@ -7,7 +7,7 @@ import java.io.File;
 
 public class DefaultBasicBuildContextImpl extends AbstractBuildContext implements BasicBuildContext {
 
-  public DefaultBasicBuildContextImpl(BuildContextConfiguration configuration) {
+  public DefaultBasicBuildContextImpl(BuildContextEnvironment configuration) {
     super(configuration);
   }
 
