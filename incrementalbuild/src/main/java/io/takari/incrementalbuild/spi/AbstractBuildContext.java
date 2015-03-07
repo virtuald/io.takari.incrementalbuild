@@ -226,7 +226,7 @@ public abstract class AbstractBuildContext {
    * Adds the resource to this build's resource set. The resource must exist, i.e. it's status must
    * not be REMOVED.
    */
-  private <T extends Serializable> T registerResource(ResourceHolder<T> holder, boolean replace) {
+  protected <T extends Serializable> T registerResource(ResourceHolder<T> holder, boolean replace) {
     T resource = holder.getResource();
     ResourceHolder<?> other = state.getResource(resource);
     if (other == null) {
@@ -542,5 +542,9 @@ public abstract class AbstractBuildContext {
   protected <T> DefaultResourceMetadata<T> newResourceMetadata(DefaultBuildContextState state,
       T resource) {
     return new DefaultResourceMetadata<T>(this, state, resource);
+  }
+
+  protected <T> DefaultResource<T> newResource(T resource) {
+    return new DefaultResource<T>(this, state, resource);
   }
 }
