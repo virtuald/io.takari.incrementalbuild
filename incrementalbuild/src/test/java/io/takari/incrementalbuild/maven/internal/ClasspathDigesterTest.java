@@ -1,5 +1,7 @@
 package io.takari.incrementalbuild.maven.internal;
 
+import io.takari.incrementalbuild.maven.internal.digest.ClasspathDigester;
+
 import java.io.File;
 import java.io.Serializable;
 import java.util.Collections;
