@@ -425,16 +425,18 @@ public abstract class AbstractBuildContext {
 
       if (holder == null) {
         if (oldState.isOutput(resource)) {
+          File outputFile = (File) resource;
           // old output resource that was not re-processed or deleted during this build
-          if (!shouldCarryOverOutput((File) resource)) {
+          if (!shouldCarryOverOutput(outputFile)) {
             // state or orphaned output, delete and do not carry-over metadata
-            deleteOutput((File) resource);
+            deleteOutput(outputFile);
             continue;
           }
           // else, carry-over output resource metadata
-          holder = oldState.getResource(resource);
+          state.addOutput(outputFile);
+          holder = oldState.getResource(outputFile);
           if (workspace instanceof Workspace2) {
-            ((Workspace2) workspace).carryOverOutput((File) resource);
+            ((Workspace2) workspace).carryOverOutput(outputFile);
           }
         } else {
           // old input that was not re-registered during this build, do not carry-over metadata
