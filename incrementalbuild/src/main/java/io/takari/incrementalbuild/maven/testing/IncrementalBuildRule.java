@@ -1,7 +1,6 @@
 package io.takari.incrementalbuild.maven.testing;
 
-import io.takari.incrementalbuild.maven.internal.MavenBuildContext.MojoExecutionScopedBuildContext;
-import io.takari.incrementalbuild.spi.DefaultBuildContext;
+import io.takari.incrementalbuild.maven.internal.ProjectWorkspace;
 import io.takari.maven.testing.TestMavenRuntime;
 
 import java.io.File;
@@ -28,10 +27,8 @@ public class IncrementalBuildRule extends TestMavenRuntime {
     super(new AbstractModule() {
       @Override
       protected void configure() {
-        bind(TestBuildContext.class).in(MojoExecutionScoped.class);
-        bind(DefaultBuildContext.class).to(TestBuildContext.class).in(MojoExecutionScoped.class);
-        bind(MojoExecutionScopedBuildContext.class).to(TestBuildContext.class).in(
-            MojoExecutionScoped.class);
+        bind(TestProjectWorkspace.class).in(MojoExecutionScoped.class);
+        bind(ProjectWorkspace.class).to(TestProjectWorkspace.class).in(MojoExecutionScoped.class);
         bind(IncrementalBuildLog.class).in(Singleton.class);
       }
     });

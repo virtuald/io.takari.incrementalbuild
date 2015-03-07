@@ -6,6 +6,7 @@ import io.takari.incrementalbuild.ResourceStatus;
 import io.takari.incrementalbuild.workspace.Workspace;
 import io.takari.incrementalbuild.workspace.Workspace.FileVisitor;
 import io.takari.incrementalbuild.workspace.Workspace.Mode;
+import io.takari.incrementalbuild.workspace.Workspace2;
 
 import java.io.File;
 import java.io.IOException;
@@ -430,6 +431,9 @@ public abstract class AbstractBuildContext {
           }
           // else, carry-over output resource metadata
           holder = oldState.getResource(resource);
+          if (workspace instanceof Workspace2) {
+            ((Workspace2) workspace).carryOverOutput((File) resource);
+          }
         } else {
           // old input that was not re-registered during this build, do not carry-over metadata
           continue;

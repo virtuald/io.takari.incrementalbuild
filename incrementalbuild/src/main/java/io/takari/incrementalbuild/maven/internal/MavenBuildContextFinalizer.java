@@ -5,6 +5,7 @@ import io.takari.incrementalbuild.spi.AbstractBuildContext;
 import io.takari.incrementalbuild.spi.Message;
 import io.takari.incrementalbuild.spi.MessageSinkAdaptor;
 import io.takari.incrementalbuild.workspace.MessageSink;
+import io.takari.incrementalbuild.workspace.MessageSink2;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -50,6 +51,17 @@ public class MavenBuildContextFinalizer implements MojoExecutionListener {
             for (Message message : entry.getValue()) {
               messageSink.message(resource, message.line, message.column, message.message,
                   toMessageSinkSeverity(message.severity), message.cause);
+            }
+          }
+        }
+        if (messageSink instanceof MessageSink2) {
+          for (Map.Entry<Object, Collection<Message>> entry : allMessages.entrySet()) {
+            Object resource = entry.getKey();
+            if (!newMessages.containsKey(resource)) {
+              for (Message message : entry.getValue()) {
+                ((MessageSink2) messageSink).replayMessage(resource, message.line, message.column,
+                    message.message, toMessageSinkSeverity(message.severity), message.cause);
+              }
             }
           }
         }
