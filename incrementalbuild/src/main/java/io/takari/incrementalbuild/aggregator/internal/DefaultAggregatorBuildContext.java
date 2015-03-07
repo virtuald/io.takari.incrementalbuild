@@ -36,8 +36,8 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
   @Override
   public DefaultAggregateMetadata registerOutput(File outputFile) {
     outputFile = normalize(outputFile);
-    // throws IllegaleStateException if the output has already been generated
-    registerNormalizedResource(outputFile, outputFile.lastModified(), outputFile.length(), false);
+    // TODO throw IllegaleStateException if the output has already been generated
+    registerNormalizedOutput(outputFile);
     return new DefaultAggregateMetadata(this, oldState, outputFile);
   }
 

@@ -165,7 +165,7 @@ public abstract class AbstractBuildContext {
           switch (status) {
             case MODIFIED:
             case NEW:
-              result.add(registerNormalizedResource(file, lastModified, length, false));
+              result.add(registerNormalizedInput(file, lastModified, length));
               break;
             case REMOVED:
               deletedResources.add(file);
@@ -185,8 +185,8 @@ public abstract class AbstractBuildContext {
           FileState fileState = (FileState) holder;
           if (!state.isResource(fileState.file) && !deletedResources.contains(fileState.file)
               && absoluteMatcher.matches(fileState.file)) {
-            result.add(registerNormalizedResource(fileState.file, fileState.lastModified,
-                fileState.length, false));
+            result.add(registerNormalizedInput(fileState.file, fileState.lastModified,
+                fileState.length));
           }
         }
       }
@@ -205,12 +205,24 @@ public abstract class AbstractBuildContext {
     }
   }
 
-  protected DefaultResourceMetadata<File> registerNormalizedResource(File resourceFile,
-      long lastModified, long length, boolean replace) {
+  protected DefaultResourceMetadata<File> registerNormalizedInput(File resourceFile,
+      long lastModified, long length) {
     if (!state.isResource(resourceFile)) {
-      registerResource(newFileState(resourceFile, lastModified, length), replace);
+      registerInput(newFileState(resourceFile, lastModified, length));
     }
     return new DefaultResourceMetadata<File>(this, oldState, resourceFile);
+  }
+
+  protected DefaultResourceMetadata<File> registerNormalizedOutput(File outputFile) {
+    if (!state.isResource(outputFile)) {
+      state.putResource(outputFile, null); // placeholder
+      state.addOutput(outputFile);
+    } else {
+      if (!state.isOutput(outputFile)) {
+        throw new IllegalStateException("Already registered as input " + outputFile);
+      }
+    }
+    return new DefaultResourceMetadata<File>(this, oldState, outputFile);
   }
 
   private FileState newFileState(File file, long lastModified, long length) {
@@ -222,15 +234,14 @@ public abstract class AbstractBuildContext {
 
   protected DefaultResourceMetadata<File> registerInput(File inputFile) {
     inputFile = normalize(inputFile);
-    return registerNormalizedResource(inputFile, inputFile.lastModified(),
-        inputFile.lastModified(), false);
+    return registerNormalizedInput(inputFile, inputFile.lastModified(), inputFile.lastModified());
   }
 
   /**
    * Adds the resource to this build's resource set. The resource must exist, i.e. it's status must
    * not be REMOVED.
    */
-  protected <T extends Serializable> T registerResource(ResourceHolder<T> holder, boolean replace) {
+  protected <T extends Serializable> T registerInput(ResourceHolder<T> holder) {
     T resource = holder.getResource();
     ResourceHolder<?> other = state.getResource(resource);
     if (other == null) {
@@ -239,12 +250,13 @@ public abstract class AbstractBuildContext {
       }
       state.putResource(resource, holder);
     } else {
-      if (!holder.equals(other)) {
-        if (!replace) {
-          throw new IllegalArgumentException("Inconsistent resource state " + resource);
-        }
-        state.putResource(resource, holder);
+      if (state.isOutput(resource)) {
+        throw new IllegalStateException("Already registered as output " + resource);
       }
+      if (!holder.equals(other)) {
+        throw new IllegalArgumentException("Inconsistent resource state " + resource);
+      }
+      state.putResource(resource, holder);
     }
     return resource;
   }
@@ -350,7 +362,7 @@ public abstract class AbstractBuildContext {
       throw new IllegalStateException("Cannot process input resource as output " + outputFile);
     }
 
-    registerNormalizedResource(outputFile, outputFile.lastModified(), outputFile.length(), true);
+    registerNormalizedOutput(outputFile);
     processResource(outputFile);
     state.addOutput(outputFile);
 
@@ -441,6 +453,14 @@ public abstract class AbstractBuildContext {
       Collection<File> outputFiles = oldState.getResourceOutputs(resource);
       if (outputFiles != null && !outputFiles.isEmpty()) {
         state.setResourceOutputs(resource, outputFiles);
+      }
+    }
+
+    // timestamp new outputs
+    for (File outputFile : state.getOutputs()) {
+      if (state.getResource(outputFile) == null) {
+        state.putResource(outputFile,
+            newFileState(outputFile, outputFile.lastModified(), outputFile.length()));
       }
     }
 
