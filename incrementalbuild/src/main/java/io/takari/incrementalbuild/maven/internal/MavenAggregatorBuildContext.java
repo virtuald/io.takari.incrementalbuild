@@ -7,23 +7,21 @@ import io.takari.incrementalbuild.spi.BuildContextEnvironment;
 
 import java.io.File;
 
+import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
-import javax.inject.Singleton;
 
 import org.apache.maven.execution.scope.MojoExecutionScoped;
 
-@Named(MavenAggregatorBuildContext.HINT)
-@Singleton
+@Named
 public class MavenAggregatorBuildContext implements AggregatorBuildContext {
-  public static final String HINT = "singleton";
 
   @Named
+  @Typed(MojoExecutionScopedAggregatorBuildContext.class)
   @MojoExecutionScoped
   public static class MojoExecutionScopedAggregatorBuildContext
       extends DefaultAggregatorBuildContext {
-
     @Inject
     public MojoExecutionScopedAggregatorBuildContext(BuildContextEnvironment configuration) {
       super(configuration);

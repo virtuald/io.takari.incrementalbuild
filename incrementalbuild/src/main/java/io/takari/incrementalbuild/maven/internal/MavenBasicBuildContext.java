@@ -8,19 +8,18 @@ import io.takari.incrementalbuild.spi.DefaultBasicBuildContextImpl;
 
 import java.io.File;
 
+import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
-import javax.inject.Singleton;
 
 import org.apache.maven.execution.scope.MojoExecutionScoped;
 
-@Named(MavenBasicBuildContext.HINT)
-@Singleton
+@Named
 public class MavenBasicBuildContext implements BasicBuildContext {
-  public static final String HINT = "singleton";
 
   @Named
+  @Typed(MojoExecutionScopedBasicBuildContext.class)
   @MojoExecutionScoped
   public static class MojoExecutionScopedBasicBuildContext extends DefaultBasicBuildContextImpl {
     @Inject
