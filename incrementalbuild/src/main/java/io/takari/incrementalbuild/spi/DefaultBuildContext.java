@@ -29,21 +29,6 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
   }
 
   @Override
-  protected <T> DefaultOutput associate(DefaultResource<T> resource, DefaultOutput output) {
-    // this can be used to associated multiple inputs with the same output, so not supported
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  protected <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
-    if (state.isOutput(resource.getResource())) {
-      // input --> output --> output2 is not supported (until somebody provides a usecase)
-      throw new UnsupportedOperationException();
-    }
-    return super.associate(resource, outputFile);
-  }
-
-  @Override
   protected boolean shouldCarryOverOutput(File resource) {
     // output should be carried over if it's input is registered but not processed during this build
     Collection<Object> inputs = oldState.getOutputInputs(resource);
@@ -76,5 +61,31 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
   public Collection<DefaultResourceMetadata<File>> registerInputs(File basedir,
       Collection<String> includes, Collection<String> excludes) throws IOException {
     return super.registerInputs(basedir, includes, excludes);
+  }
+
+  @Override
+  protected void assertAssociation(DefaultResource<?> resource, DefaultOutput output) {
+    Object input = resource.getResource();
+    File outputFile = output.getResource();
+
+    // input --> output --> output2 is not supported (until somebody provides a usecase)
+    if (state.isOutput(input)) {
+      throw new UnsupportedOperationException();
+    }
+
+    // each output can only be associated with a single input
+    Collection<Object> inputs = state.getOutputInputs(outputFile);
+    if (inputs != null && !inputs.isEmpty() && !containsOnly(inputs, input)) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  private static boolean containsOnly(Collection<Object> collection, Object element) {
+    for (Object other : collection) {
+      if (!element.equals(other)) {
+        return true;
+      }
+    }
+    return true;
   }
 }

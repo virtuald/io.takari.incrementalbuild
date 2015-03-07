@@ -12,11 +12,11 @@ import java.util.Collection;
  */
 public class DefaultResourceMetadata<T> implements ResourceMetadata<T> {
 
-  final AbstractBuildContext context;
+  protected final AbstractBuildContext context;
 
-  final DefaultBuildContextState state;
+  protected final DefaultBuildContextState state;
 
-  final T resource;
+  protected final T resource;
 
   protected DefaultResourceMetadata(AbstractBuildContext context, DefaultBuildContextState state,
       T resource) {

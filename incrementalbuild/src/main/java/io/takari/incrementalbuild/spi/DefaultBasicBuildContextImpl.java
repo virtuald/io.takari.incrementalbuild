@@ -40,4 +40,10 @@ public class DefaultBasicBuildContextImpl extends AbstractBuildContext implement
   public DefaultResourceMetadata<File> registerInput(File inputFile) {
     return super.registerInput(inputFile);
   }
+
+  @Override
+  protected void assertAssociation(DefaultResource<?> resource, DefaultOutput output) {
+    // this context does not track input/output association, so lets make it clear to the users
+    throw new UnsupportedOperationException();
+  }
 }

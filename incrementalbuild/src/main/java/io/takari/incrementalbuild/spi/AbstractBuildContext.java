@@ -381,13 +381,16 @@ public abstract class AbstractBuildContext {
       throw new IllegalArgumentException();
     }
 
+    assertAssociation(resource, output);
+
     state.putResourceOutput(resource.getResource(), output.getResource());
     return output;
   }
 
+  protected abstract void assertAssociation(DefaultResource<?> resource, DefaultOutput output);
+
   protected <T> DefaultOutput associate(DefaultResource<T> resource, File outputFile) {
-    DefaultOutput output = processOutput(outputFile);
-    return associate(resource, output);
+    return associate(resource, processOutput(outputFile));
   }
 
   protected Collection<? extends ResourceMetadata<File>> getAssociatedOutputs(

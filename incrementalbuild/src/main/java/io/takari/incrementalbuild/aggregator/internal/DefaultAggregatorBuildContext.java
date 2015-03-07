@@ -12,6 +12,7 @@ import io.takari.incrementalbuild.aggregator.InputProcessor;
 import io.takari.incrementalbuild.spi.AbstractBuildContext;
 import io.takari.incrementalbuild.spi.BuildContextConfiguration;
 import io.takari.incrementalbuild.spi.DefaultOutput;
+import io.takari.incrementalbuild.spi.DefaultResource;
 
 import java.io.File;
 import java.io.IOException;
@@ -91,4 +92,9 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     return processingRequired;
   }
 
+  @Override
+  protected void assertAssociation(DefaultResource<?> resource, DefaultOutput output) {
+    // aggregating context supports any association between inputs and outputs
+    // or, rather, there is no obviously wrong combination
+  }
 }
