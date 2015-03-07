@@ -11,14 +11,6 @@ public interface BuildContext {
 
   /**
    * Registers specified input {@code File} with this build context.
-   * <p>
-   * <strong>WARNING</strong> this method is not fully compatible with m2e build workspace. It
-   * should only be used for static project resources, like Maven pom.xml. {@link #registerInputs}
-   * (or {@link #registerAndProcessInputs}) should be used in all other cases.
-   * 
-   * @TODO this method behaves differently before and after input was processed. Once input is
-   *       processed, the returned InputMetadata represent input's new state, which maybe confusing.
-   *       There is also no way to access input's old state.
    * 
    * @return {@link InputMetadata} representing the input file, never {@code null}.
    * @throws IllegalArgumentException if inputFile is not a file or cannot be read
