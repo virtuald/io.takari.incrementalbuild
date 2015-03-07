@@ -358,13 +358,10 @@ public abstract class AbstractBuildContext {
   protected DefaultOutput processOutput(File outputFile) {
     outputFile = normalize(outputFile);
 
-    if (state.isResource(outputFile) != state.isOutput(outputFile)) {
-      throw new IllegalStateException("Cannot process input resource as output " + outputFile);
-    }
-
     registerNormalizedOutput(outputFile);
     processResource(outputFile);
-    state.addOutput(outputFile);
+
+    workspace.processOutput(outputFile);
 
     return new DefaultOutput(this, state, outputFile);
   }
