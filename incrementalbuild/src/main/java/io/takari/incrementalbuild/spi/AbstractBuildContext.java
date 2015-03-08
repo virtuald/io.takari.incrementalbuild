@@ -433,11 +433,7 @@ public abstract class AbstractBuildContext {
             continue;
           }
           // else, carry-over output resource metadata
-          state.addOutput(outputFile);
           holder = oldState.getResource(outputFile);
-          if (workspace instanceof Workspace2) {
-            ((Workspace2) workspace).carryOverOutput(outputFile);
-          }
         } else {
           // old input that was not re-registered during this build, do not carry-over metadata
           continue;
@@ -445,6 +441,15 @@ public abstract class AbstractBuildContext {
       }
 
       state.putResource(resource, holder);
+
+      // carry-over isOutput
+      if (oldState.isOutput(resource)) {
+        File outputFile = (File) resource;
+        state.addOutput(outputFile);
+        if (workspace instanceof Workspace2) {
+          ((Workspace2) workspace).carryOverOutput(outputFile);
+        }
+      }
 
       // carry-over messages
       Collection<Message> messages = oldState.getResourceMessages(resource);
