@@ -98,7 +98,7 @@ public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, Bu
         context.commit(messager);
       }
 
-      if (messageSink == null) {
+      if (messageSink == null || messageSink instanceof MessageSink2) {
         // without messageSink, have to raise exception if there were errors
         int errorCount = 0;
         StringBuilder errors = new StringBuilder();
