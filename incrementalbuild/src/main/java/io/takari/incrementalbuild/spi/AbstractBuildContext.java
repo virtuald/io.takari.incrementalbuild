@@ -463,6 +463,7 @@ public abstract class AbstractBuildContext {
         state.setResourceAttributes(resource, attributes);
       }
 
+      // carry-over associated outputs
       Collection<File> outputFiles = oldState.getResourceOutputs(resource);
       if (outputFiles != null && !outputFiles.isEmpty()) {
         state.setResourceOutputs(resource, outputFiles);
