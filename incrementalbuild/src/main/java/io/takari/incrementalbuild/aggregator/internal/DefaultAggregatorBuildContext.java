@@ -70,7 +70,7 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     File outputFile = outputMetadata.getResource();
     boolean processingRequired = getResourceStatus(outputFile) != ResourceStatus.UNMODIFIED;
     Collection<File> inputFiles = outputInputs.get(outputMetadata.getResource());
-    if (!processingRequired) {
+    if (!processingRequired && inputFiles != null) {
       for (File input : inputFiles) {
         if (getResourceStatus(input) != ResourceStatus.UNMODIFIED) {
           processingRequired = true;
@@ -81,12 +81,15 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     if (processingRequired) {
       DefaultOutput output = processOutput(outputFile);
       List<AggregateInput> inputs = new ArrayList<>();
-      for (File inputFile : inputFiles) {
-        if (!isProcessedResource(inputFile)) {
-          processResource(inputFile);
+      if (inputFiles != null) {
+        for (File inputFile : inputFiles) {
+          if (!isProcessedResource(inputFile)) {
+            processResource(inputFile);
+          }
+          state.putOutputInput(outputFile, inputFile);
+          inputs
+              .add(new DefaultAggregateInput(this, state, inputBasedir.get(inputFile), inputFile));
         }
-        state.putOutputInput(outputFile, inputFile);
-        inputs.add(new DefaultAggregateInput(this, state, inputBasedir.get(inputFile), inputFile));
       }
       creator.create(output, inputs);
     } else {
