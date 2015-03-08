@@ -33,8 +33,7 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
     // output should be carried over if it's input is registered but not processed during this build
     Collection<Object> inputs = oldState.getOutputInputs(resource);
     if (inputs == null || inputs.size() != 1) {
-      // this implementation only supports 1..* input/output association
-      // it is not possible to create output without one and only onle associated input
+      // this context implementation is supposed to enforce 1..* input/output association
       throw new IllegalStateException();
     }
     Object input = inputs.iterator().next();

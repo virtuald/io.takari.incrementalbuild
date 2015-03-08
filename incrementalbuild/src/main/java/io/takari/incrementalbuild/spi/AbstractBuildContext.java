@@ -586,7 +586,11 @@ public abstract class AbstractBuildContext {
     return new DefaultResource<T>(this, state, resource);
   }
 
-  protected void markOutputUptodate(File outputFile) {
+  protected void markUptodateOutput(File outputFile) {
+    if (!oldState.isOutput(outputFile)) {
+      throw new IllegalArgumentException();
+    }
     state.putResource(outputFile, oldState.getResource(outputFile));
+    state.addOutput(outputFile);
   }
 }

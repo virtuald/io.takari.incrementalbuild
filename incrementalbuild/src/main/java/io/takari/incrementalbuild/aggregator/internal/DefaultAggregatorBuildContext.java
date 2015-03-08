@@ -93,7 +93,7 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
       }
       creator.create(output, inputs);
     } else {
-      markOutputUptodate(outputFile);
+      markUptodateOutput(outputFile);
     }
     return processingRequired;
   }
