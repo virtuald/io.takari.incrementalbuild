@@ -52,6 +52,7 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
       throws IOException {
     basedir = normalize(basedir);
     for (ResourceMetadata<File> inputMetadata : registerInputs(basedir, includes, excludes)) {
+      inputBasedir.put(inputMetadata.getResource(), basedir);
       if (inputMetadata.getStatus() != ResourceStatus.UNMODIFIED) {
         Resource<File> input = inputMetadata.process();
         if (processors != null) {
@@ -88,6 +89,8 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
         inputs.add(new DefaultAggregateInput(this, state, inputBasedir.get(inputFile), inputFile));
       }
       creator.create(output, inputs);
+    } else {
+      markOutputUptodate(outputFile);
     }
     return processingRequired;
   }

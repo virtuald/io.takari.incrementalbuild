@@ -579,4 +579,8 @@ public abstract class AbstractBuildContext {
   protected <T> DefaultResource<T> newResource(T resource) {
     return new DefaultResource<T>(this, state, resource);
   }
+
+  protected void markOutputUptodate(File outputFile) {
+    state.putResource(outputFile, oldState.getResource(outputFile));
+  }
 }
