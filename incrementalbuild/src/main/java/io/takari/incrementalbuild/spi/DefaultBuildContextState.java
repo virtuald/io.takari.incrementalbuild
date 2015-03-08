@@ -331,8 +331,8 @@ public class DefaultBuildContextState implements Serializable {
     return outputInputs.get(outputFile);
   }
 
-  public boolean putOutputInput(File outputFile, Object input) {
-    return MMaps.put(outputInputs, outputFile, input);
+  public Collection<Object> setOutputInputs(File outputFile, Collection<Object> resources) {
+    return outputInputs.put(outputFile, resources);
   }
 
   // outputs
@@ -356,6 +356,7 @@ public class DefaultBuildContextState implements Serializable {
   // resourceOutputs
 
   public boolean putResourceOutput(Object resource, File output) {
+    put(outputInputs, output, resource);
     return put(resourceOutputs, resource, output);
   }
 
@@ -368,7 +369,24 @@ public class DefaultBuildContextState implements Serializable {
   }
 
   public Collection<File> removeResourceOutputs(Object resource) {
-    return resourceOutputs.remove(resource);
+    Collection<File> outputs = resourceOutputs.remove(resource);
+    removeOutputInputs(outputs, resource);
+    return outputs;
+  }
+
+  private void removeOutputInputs(Collection<File> outputs, Object resource) {
+    if (outputs == null) {
+      return;
+    }
+    for (File output : outputs) {
+      Collection<Object> inputs = outputInputs.get(output);
+      if (inputs == null || !inputs.remove(resource)) {
+        throw new IllegalStateException();
+      }
+      if (inputs != null && inputs.isEmpty()) {
+        outputInputs.remove(output);
+      }
+    }
   }
 
   // resourceAttributes

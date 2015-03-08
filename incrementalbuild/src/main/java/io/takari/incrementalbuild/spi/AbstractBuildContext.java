@@ -446,6 +446,11 @@ public abstract class AbstractBuildContext {
       if (oldState.isOutput(resource)) {
         File outputFile = (File) resource;
         state.addOutput(outputFile);
+
+        // carry-over associated inputs
+        Collection<Object> inputs = oldState.getOutputInputs(outputFile);
+        state.setOutputInputs(outputFile, inputs);
+
         if (workspace instanceof Workspace2) {
           ((Workspace2) workspace).carryOverOutput(outputFile);
         }
@@ -464,9 +469,9 @@ public abstract class AbstractBuildContext {
       }
 
       // carry-over associated outputs
-      Collection<File> outputFiles = oldState.getResourceOutputs(resource);
-      if (outputFiles != null && !outputFiles.isEmpty()) {
-        state.setResourceOutputs(resource, outputFiles);
+      Collection<File> outputs = oldState.getResourceOutputs(resource);
+      if (outputs != null && !outputs.isEmpty()) {
+        state.setResourceOutputs(resource, outputs);
       }
     }
 

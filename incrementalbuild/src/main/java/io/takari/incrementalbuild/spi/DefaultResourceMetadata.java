@@ -74,4 +74,9 @@ public class DefaultResourceMetadata<T> implements ResourceMetadata<T> {
   protected AbstractBuildContext getContext() {
     return context;
   }
+
+  @Override
+  public String toString() {
+    return resource.toString();
+  }
 }
