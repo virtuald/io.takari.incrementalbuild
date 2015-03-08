@@ -16,7 +16,7 @@ import org.apache.maven.project.MavenProject;
 //this is explicitly bound in IncrementalBuildRuntime.addGuiceModules
 class TestProjectWorkspace extends ProjectWorkspace implements Workspace2 {
 
-  private IncrementalBuildLog log;
+  private final IncrementalBuildLog log;
 
   private class ForwardingWorkspace2 implements Workspace2 {
 

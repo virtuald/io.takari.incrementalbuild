@@ -1,6 +1,6 @@
 package io.takari.incrementalbuild.maven.testing;
 
-import io.takari.incrementalbuild.MessageSeverity;
+import io.takari.incrementalbuild.workspace.MessageSink.Severity;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -10,13 +10,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 // this is explicitly bound in IncrementalBuildRuntime.addGuiceModules
 public class IncrementalBuildLog {
-
-  private final Logger log = LoggerFactory.getLogger(getClass());
 
   private final List<File> registeredOutputs = new ArrayList<File>();
 
@@ -26,24 +21,45 @@ public class IncrementalBuildLog {
 
   private final Map<File, List<String>> inputMessages = new HashMap<File, List<String>>();
 
-  public void addRegisterOutput(File outputFile) {
+  void addRegisterOutput(File outputFile) {
     registeredOutputs.add(outputFile);
   }
+
+  void addDeletedOutput(File outputFile) {
+    deletedOutputs.add(outputFile);
+  }
+
+  void addCarryoverOutput(File outputFile) {
+    carriedOverOutputs.add(outputFile);
+  }
+
+  void message(Object resource, int line, int column, String message, Severity severity,
+      Throwable cause) {
+
+    if (!(resource instanceof File)) {
+      // XXX I am too lazy right now, need to fix this later
+      throw new IllegalArgumentException();
+    }
+    File file = (File) resource;
+    String msg = String.format("%s %s [%d:%d] %s", severity.name(), //
+        file.getName(), line, column, message);
+
+    List<String> messages = inputMessages.get(file);
+    if (messages == null) {
+      messages = new ArrayList<String>();
+      inputMessages.put(file, messages);
+    }
+    messages.add(msg);
+  }
+
+  // public api
 
   public Collection<File> getRegisteredOutputs() {
     return registeredOutputs;
   }
 
-  public void addDeletedOutput(File outputFile) {
-    deletedOutputs.add(outputFile);
-  }
-
   public Collection<File> getDeletedOutputs() {
     return deletedOutputs;
-  }
-
-  public void addCarryoverOutput(File outputFile) {
-    carriedOverOutputs.add(outputFile);
   }
 
   public Collection<File> getCarriedOverOutputs() {
@@ -62,34 +78,4 @@ public class IncrementalBuildLog {
     inputMessages.clear();
   }
 
-  public void message(Object resource, int line, int column, String message, MessageSeverity severity,
-      Throwable cause) {
-
-    if (!(resource instanceof File)) {
-      // XXX I am too lazy right now, need to fix this later
-      throw new IllegalArgumentException();
-    }
-    File file = (File) resource;
-    String msg = String.format("%s %s [%d:%d] %s", severity.name(), //
-        file.getName(), line, column, message);
-
-    List<String> messages = inputMessages.get(file);
-    if (messages == null) {
-      messages = new ArrayList<String>();
-      inputMessages.put(file, messages);
-    }
-    messages.add(msg);
-
-    switch (severity) {
-      case ERROR:
-        log.error(msg);
-        break;
-      case WARNING:
-        log.warn(msg);
-        break;
-      case INFO:
-        log.info(msg);
-        break;
-    }
-  }
 }

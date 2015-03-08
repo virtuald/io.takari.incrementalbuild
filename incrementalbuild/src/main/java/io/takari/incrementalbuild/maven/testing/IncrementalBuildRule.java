@@ -1,6 +1,7 @@
 package io.takari.incrementalbuild.maven.testing;
 
 import io.takari.incrementalbuild.maven.internal.ProjectWorkspace;
+import io.takari.incrementalbuild.workspace.MessageSink;
 import io.takari.maven.testing.TestMavenRuntime;
 
 import java.io.File;
@@ -27,9 +28,16 @@ public class IncrementalBuildRule extends TestMavenRuntime {
     super(new AbstractModule() {
       @Override
       protected void configure() {
+        // log
+        bind(IncrementalBuildLog.class).in(Singleton.class);
+
+        // workspace
         bind(TestProjectWorkspace.class).in(MojoExecutionScoped.class);
         bind(ProjectWorkspace.class).to(TestProjectWorkspace.class).in(MojoExecutionScoped.class);
-        bind(IncrementalBuildLog.class).in(Singleton.class);
+
+        // message sink
+        bind(TestMessageSink.class).in(MojoExecutionScoped.class);
+        bind(MessageSink.class).to(TestMessageSink.class).in(MojoExecutionScoped.class);
       }
     });
   }
