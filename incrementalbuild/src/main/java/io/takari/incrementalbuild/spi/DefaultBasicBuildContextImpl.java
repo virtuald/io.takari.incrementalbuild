@@ -18,6 +18,9 @@ public class DefaultBasicBuildContextImpl extends AbstractBuildContext implement
 
   @Override
   public boolean isProcessingRequired() {
+    if (isEscalated()) {
+      return true;
+    }
     for (Object resource : state.resourcesMap().keySet()) {
       if (!state.isOutput(resource) && getResourceStatus(resource) != ResourceStatus.UNMODIFIED) {
         return true;
