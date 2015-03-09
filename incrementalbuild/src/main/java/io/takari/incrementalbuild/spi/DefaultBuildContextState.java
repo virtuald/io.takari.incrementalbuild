@@ -362,6 +362,9 @@ public class DefaultBuildContextState implements Serializable {
   }
 
   public Collection<File> setResourceOutputs(Object resource, Collection<File> outputs) {
+    if (outputs == null || outputs.isEmpty()) {
+      return resourceOutputs.remove(resource);
+    }
     return resourceOutputs.put(resource, outputs);
   }
 
@@ -412,6 +415,9 @@ public class DefaultBuildContextState implements Serializable {
 
   public Map<String, Serializable> setResourceAttributes(Object resource,
       Map<String, Serializable> attributes) {
+    if (attributes == null || attributes.isEmpty()) {
+      return resourceAttributes.remove(resource);
+    }
     return resourceAttributes.put(resource, attributes);
   }
 
@@ -426,6 +432,9 @@ public class DefaultBuildContextState implements Serializable {
   }
 
   public Collection<Message> setResourceMessages(Object resource, Collection<Message> messages) {
+    if (messages == null || messages.isEmpty()) {
+      return resourceMessages.remove(resource);
+    }
     return resourceMessages.put(resource, messages);
   }
 
