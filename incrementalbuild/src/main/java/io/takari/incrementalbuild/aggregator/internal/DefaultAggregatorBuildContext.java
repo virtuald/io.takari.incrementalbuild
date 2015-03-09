@@ -14,6 +14,7 @@ import io.takari.incrementalbuild.spi.BuildContextEnvironment;
 import io.takari.incrementalbuild.spi.DefaultBuildContextState;
 import io.takari.incrementalbuild.spi.DefaultOutput;
 import io.takari.incrementalbuild.spi.DefaultResource;
+import io.takari.incrementalbuild.workspace.Workspace2;
 
 import java.io.File;
 import java.io.IOException;
@@ -32,8 +33,6 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
   private static final String KEY_METADATA = "aggregate.metadata";
 
   private final Map<File, File> inputBasedir = new HashMap<>();
-
-  private final Map<File, Collection<Object>> outputInputs = new HashMap<>();
 
   private final Map<File, Map<String, Serializable>> outputMetadata = new HashMap<>();
 
@@ -55,15 +54,14 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
   public void associateInputs(DefaultAggregateMetadata output, File basedir,
       Collection<String> includes, Collection<String> excludes, InputProcessor... processors)
       throws IOException {
+    if (processors.length > 1) {
+      throw new IllegalArgumentException();
+    }
+
     basedir = normalize(basedir);
 
     File outputFile = output.getResource();
 
-    Collection<Object> inputs = outputInputs.get(outputFile);
-    if (inputs == null) {
-      inputs = new ArrayList<>();
-      outputInputs.put(outputFile, inputs);
-    }
     Map<String, Serializable> metadata = outputMetadata.get(outputFile);
     if (metadata == null) {
       metadata = new HashMap<>();
@@ -71,31 +69,36 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     }
 
     for (ResourceMetadata<File> inputMetadata : registerInputs(basedir, includes, excludes)) {
-      inputBasedir.put(inputMetadata.getResource(), basedir); // TODO move to FileState
-      inputs.add(inputMetadata.getResource());
-      if (inputMetadata.getStatus() != ResourceStatus.UNMODIFIED) {
-        if (isProcessedResource(inputMetadata.getResource())) {
+      File resource = inputMetadata.getResource();
+      inputBasedir.put(resource, basedir); // TODO move to FileState
+      if (getResourceStatus(resource) != ResourceStatus.UNMODIFIED) {
+        if (isProcessedResource(resource)) {
           // don't know all implications, will deal when/if anyone asks for it
-          throw new IllegalStateException("Input already processed " + inputMetadata.getResource());
+          throw new IllegalStateException("Input already processed " + resource);
         }
         Resource<File> input = inputMetadata.process();
         if (processors != null) {
           for (InputProcessor processor : processors) {
             Map<String, Serializable> processed = processor.process(input);
             if (processed != null) {
-              input.setAttribute(KEY_METADATA, new HashMap<String, Serializable>(processed));
+              state.putResourceAttribute(resource, KEY_METADATA, new HashMap<>(processed));
               metadata.putAll(processed);
             }
           }
         }
       } else {
-        @SuppressWarnings("unchecked")
-        HashMap<String, Serializable> persisted =
-            inputMetadata.getAttribute(KEY_METADATA, HashMap.class);
-        if (persisted != null) {
-          metadata.putAll(persisted);
+        Map<String, Serializable> attributes = oldState.getResourceAttributes(resource);
+        state.setResourceAttributes(resource, attributes);
+        if (attributes != null) {
+          @SuppressWarnings("unchecked")
+          HashMap<String, Serializable> persisted =
+              (HashMap<String, Serializable>) attributes.get(KEY_METADATA);
+          if (persisted != null) {
+            metadata.putAll(persisted);
+          }
         }
       }
+      state.putResourceOutput(resource, output.getResource());
     }
   }
 
@@ -107,7 +110,7 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
       processingRequired = isProcessingRequired(outputFile);
     }
     if (processingRequired) {
-      Collection<Object> inputFiles = outputInputs.get(outputFile);
+      Collection<Object> inputFiles = state.getOutputInputs(outputFile);
       DefaultOutput output = processOutput(outputFile);
       List<AggregateInput> inputs = new ArrayList<>();
       if (inputFiles != null) {
@@ -138,7 +141,7 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
 
   // re-create output if any its inputs were added, changed or deleted since previous build
   private boolean isProcessingRequired(File outputFile) {
-    Collection<Object> inputs = outputInputs.get(outputFile);
+    Collection<Object> inputs = state.getOutputInputs(outputFile);
     if (inputs != null) {
       for (Object input : inputs) {
         if (getResourceStatus(input) != ResourceStatus.UNMODIFIED) {
@@ -182,7 +185,7 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     }
     if (processingRequired) {
       DefaultOutput output = processOutput(outputFile);
-      Collection<Object> inputs = outputInputs.get(outputFile);
+      Collection<Object> inputs = state.getOutputInputs(outputFile);
       if (inputs != null) {
         for (Object input : inputs) {
           state.putResourceOutput(input, outputFile);
@@ -203,7 +206,21 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
   }
 
   @Override
-  protected void finalizeContext() {
-
+  protected void finalizeContext() throws IOException {
+    for (File oldOutput : oldState.getOutputs()) {
+      if (isProcessedResource(oldOutput)) {
+        // processed during this build
+      } else if (state.getResource(oldOutput) == null) {
+        // registered but neither processed or marked as up-to-date
+        deleteOutput(oldOutput);
+      } else {
+        // up-to-date
+        state.setResourceMessages(oldOutput, oldState.getResourceMessages(oldOutput));
+        state.setResourceAttributes(oldOutput, oldState.getResourceAttributes(oldOutput));
+        if (workspace instanceof Workspace2) {
+          ((Workspace2) workspace).carryOverOutput(oldOutput);
+        }
+      }
+    }
   }
 }
