@@ -5,9 +5,9 @@ import io.takari.incrementalbuild.ResourceStatus;
 
 import java.io.File;
 
-public class DefaultBasicBuildContextImpl extends AbstractBuildContext implements BasicBuildContext {
+public class DefaultBasicBuildContext extends AbstractBuildContext implements BasicBuildContext {
 
-  public DefaultBasicBuildContextImpl(BuildContextEnvironment configuration) {
+  public DefaultBasicBuildContext(BuildContextEnvironment configuration) {
     super(configuration);
   }
 

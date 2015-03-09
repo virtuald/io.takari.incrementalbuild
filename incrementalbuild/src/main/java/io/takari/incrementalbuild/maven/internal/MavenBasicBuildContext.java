@@ -4,7 +4,7 @@ import io.takari.incrementalbuild.BasicBuildContext;
 import io.takari.incrementalbuild.Output;
 import io.takari.incrementalbuild.ResourceMetadata;
 import io.takari.incrementalbuild.spi.BuildContextEnvironment;
-import io.takari.incrementalbuild.spi.DefaultBasicBuildContextImpl;
+import io.takari.incrementalbuild.spi.DefaultBasicBuildContext;
 
 import java.io.File;
 
@@ -21,7 +21,7 @@ public class MavenBasicBuildContext implements BasicBuildContext {
   @Named
   @Typed(MojoExecutionScopedBasicBuildContext.class)
   @MojoExecutionScoped
-  public static class MojoExecutionScopedBasicBuildContext extends DefaultBasicBuildContextImpl {
+  public static class MojoExecutionScopedBasicBuildContext extends DefaultBasicBuildContext {
     @Inject
     public MojoExecutionScopedBasicBuildContext(BuildContextEnvironment configuration) {
       super(configuration);
