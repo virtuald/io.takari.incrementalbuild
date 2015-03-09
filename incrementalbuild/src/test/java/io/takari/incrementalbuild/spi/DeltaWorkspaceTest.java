@@ -174,7 +174,7 @@ public class DeltaWorkspaceTest extends AbstractBuildContextTest {
     workspace.removed.add(a);
     ctx = newBuildContext(workspace);
     assertEquals(0, toList(ctx.registerInputs(basedir, null, null)).size());
-    assertEquals(ResourceStatus.REMOVED, ctx.getResourceStatus(a, true));
+    assertEquals(ResourceStatus.REMOVED, ctx.getResourceStatus(a));
     input.process();
     ctx.commit();
   }

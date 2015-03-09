@@ -2,19 +2,27 @@ package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext;
 import io.takari.incrementalbuild.ResourceStatus;
+import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 public class DefaultBuildContext extends AbstractBuildContext implements BuildContext {
 
   public DefaultBuildContext(BuildContextEnvironment configuration) {
     super(configuration);
+  }
+
+  protected DefaultBuildContext(Workspace workspace, File stateFile,
+      Map<String, Serializable> configuration, BuildContextFinalizer finalizer) {
+    super(workspace, stateFile, configuration, finalizer);
   }
 
   @Override

@@ -106,7 +106,9 @@ public abstract class AbstractBuildContext {
       log.info("Performing incremental build");
     }
 
-    finalizer.registerContext(this);
+    if (finalizer != null) {
+      finalizer.registerContext(this);
+    }
   }
 
   private boolean getConfigurationChanged() {
