@@ -2,8 +2,12 @@ package io.takari.incrementalbuild.maven.testing;
 
 import io.takari.incrementalbuild.maven.internal.MavenBuildContextFinalizer;
 import io.takari.incrementalbuild.spi.AbstractBuildContext;
+import io.takari.incrementalbuild.spi.DefaultBuildContextState;
+import io.takari.incrementalbuild.spi.Message;
 
 import java.io.File;
+import java.util.Collection;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -30,16 +34,23 @@ class TestBuildContextFinalizer extends MavenBuildContextFinalizer {
       super.afterMojoExecutionSuccess(event);
     } finally {
       for (AbstractBuildContext context : getRegisteredContexts()) {
+        DefaultBuildContextState state = context.getState();
+
         // carried over outputs
-        for (File output : context.getState().getOutputs()) {
+        for (File output : state.getOutputs()) {
           // if not processed during this build it must have been carried over
           if (!log.getRegisteredOutputs().contains(output)) {
             log.addCarryoverOutput(output);
           }
         }
 
-        // carried over messages
-
+        // messages
+        for (Map.Entry<Object, Collection<Message>> entry : state.resourceMessagesMap().entrySet()) {
+          for (Message message : entry.getValue()) {
+            log.message(entry.getKey(), message.line, message.column, message.message,
+                toMessageSinkSeverity(message.severity), message.cause);
+          }
+        }
       }
     }
   }

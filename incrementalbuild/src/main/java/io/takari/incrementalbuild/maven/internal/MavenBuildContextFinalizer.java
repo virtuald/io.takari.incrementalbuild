@@ -6,7 +6,6 @@ import io.takari.incrementalbuild.spi.BuildContextFinalizer;
 import io.takari.incrementalbuild.spi.Message;
 import io.takari.incrementalbuild.spi.MessageSinkAdaptor;
 import io.takari.incrementalbuild.workspace.MessageSink;
-import io.takari.incrementalbuild.workspace.MessageSink2;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -62,17 +61,6 @@ public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, Bu
             }
           }
         }
-        if (messageSink instanceof MessageSink2) {
-          for (Map.Entry<Object, Collection<Message>> entry : allMessages.entrySet()) {
-            Object resource = entry.getKey();
-            if (!newMessages.containsKey(resource)) {
-              for (Message message : entry.getValue()) {
-                ((MessageSink2) messageSink).replayMessage(resource, message.line, message.column,
-                    message.message, toMessageSinkSeverity(message.severity), message.cause);
-              }
-            }
-          }
-        }
         messages.putAll(allMessages);
       }
 
@@ -83,18 +71,6 @@ public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, Bu
         }
       }
 
-      private MessageSink.Severity toMessageSinkSeverity(MessageSeverity severity) {
-        switch (severity) {
-          case ERROR:
-            return MessageSink.Severity.ERROR;
-          case WARNING:
-            return MessageSink.Severity.WARNING;
-          case INFO:
-            return MessageSink.Severity.INFO;
-          default:
-            throw new IllegalArgumentException();
-        }
-      }
     };
 
     try {
@@ -102,28 +78,31 @@ public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, Bu
         context.commit(messager);
       }
 
-      if (messageSink == null || messageSink instanceof MessageSink2) {
-        // without messageSink, have to raise exception if there were errors
-        int errorCount = 0;
-        StringBuilder errors = new StringBuilder();
-        for (Map.Entry<Object, Collection<Message>> entry : messages.entrySet()) {
-          Object resource = entry.getKey();
-          for (Message message : entry.getValue()) {
-            if (message.severity == MessageSeverity.ERROR) {
-              errorCount++;
-              errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
-                  message.column, message.message));
-            }
-          }
-        }
-        if (errorCount > 0) {
-          throw new MojoExecutionException(errorCount + " error(s) encountered:\n"
-              + errors.toString());
-        }
-
+      if (messageSink == null) {
+        failBuild(messages);
       }
     } catch (IOException e) {
       throw new MojoExecutionException("Could not maintain incremental build state", e);
+    }
+  }
+
+  protected void failBuild(final Map<Object, Collection<Message>> messages)
+      throws MojoExecutionException {
+    // without messageSink, have to raise exception if there were errors
+    int errorCount = 0;
+    StringBuilder errors = new StringBuilder();
+    for (Map.Entry<Object, Collection<Message>> entry : messages.entrySet()) {
+      Object resource = entry.getKey();
+      for (Message message : entry.getValue()) {
+        if (message.severity == MessageSeverity.ERROR) {
+          errorCount++;
+          errors.append(String.format("%s:[%d:%d] %s\n", resource.toString(), message.line,
+              message.column, message.message));
+        }
+      }
+    }
+    if (errorCount > 0) {
+      throw new MojoExecutionException(errorCount + " error(s) encountered:\n" + errors.toString());
     }
   }
 
@@ -132,5 +111,18 @@ public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, Bu
 
   @Override
   public void afterExecutionFailure(MojoExecutionEvent event) {}
+
+  protected static MessageSink.Severity toMessageSinkSeverity(MessageSeverity severity) {
+    switch (severity) {
+      case ERROR:
+        return MessageSink.Severity.ERROR;
+      case WARNING:
+        return MessageSink.Severity.WARNING;
+      case INFO:
+        return MessageSink.Severity.INFO;
+      default:
+        throw new IllegalArgumentException();
+    }
+  }
 
 }
