@@ -52,11 +52,6 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     return new DefaultAggregateMetadata(this, oldState, outputFile);
   }
 
-  @Override
-  protected boolean shouldCarryOverOutput(File resource) {
-    return false; // delete outputs that were not recreated during this build
-  }
-
   public void associateInputs(DefaultAggregateMetadata output, File basedir,
       Collection<String> includes, Collection<String> excludes, InputProcessor... processors)
       throws IOException {
@@ -205,5 +200,10 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
     if (source != null) {
       target.putAll((Map<K, V>) source);
     }
+  }
+
+  @Override
+  protected void finalizeContext() {
+
   }
 }

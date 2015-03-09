@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractBuildContext {
   protected final Logger log = LoggerFactory.getLogger(getClass());
 
-  private final Workspace workspace;
+  protected final Workspace workspace;
 
   private final File stateFile;
 
@@ -412,69 +412,26 @@ public abstract class AbstractBuildContext {
     }
     this.closed = true;
 
+    // messages recorded during this build
     Map<Object, Collection<Message>> newMessages = new HashMap<>(state.resourceMessagesMap());
 
-    // carry-over up-to-date resources
-    for (Object resource : oldState.resourcesMap().keySet()) {
-      if (processedResources.contains(resource) || deletedResources.contains(resource)) {
-        // known deleted or processed resource, nothing to carry over
-        continue;
-      }
-
-      ResourceHolder<?> holder = state.getResource(resource);
-
-      if (holder == null) {
-        if (oldState.isOutput(resource)) {
-          File outputFile = (File) resource;
-          // old output resource that was not re-processed or deleted during this build
-          if (!shouldCarryOverOutput(outputFile)) {
-            // state or orphaned output, delete and do not carry-over metadata
-            deleteOutput(outputFile);
-            continue;
-          }
-          // else, carry-over output resource metadata
-          holder = oldState.getResource(outputFile);
-        } else {
-          // old input that was not re-registered during this build, do not carry-over metadata
-          continue;
-        }
-      }
-
-      state.putResource(resource, holder);
-
-      // carry-over isOutput
-      if (oldState.isOutput(resource) && state.isOutput(resource)) {
-        File outputFile = (File) resource;
-
-        if (workspace instanceof Workspace2) {
-          ((Workspace2) workspace).carryOverOutput(outputFile);
-        }
-      }
-
-      // carry-over messages
-      Collection<Message> messages = oldState.getResourceMessages(resource);
-      if (messages != null && !messages.isEmpty()) {
-        state.setResourceMessages(resource, messages);
-      }
-
-      // carry-over attributes
-      Map<String, Serializable> attributes = oldState.getResourceAttributes(resource);
-      if (attributes != null && !attributes.isEmpty()) {
-        state.setResourceAttributes(resource, attributes);
-      }
-
-      // carry-over associated outputs
-      Collection<File> outputs = oldState.getResourceOutputs(resource);
-      if (outputs != null && !outputs.isEmpty()) {
-        state.setResourceOutputs(resource, outputs);
-      }
-    }
+    finalizeContext();
 
     // timestamp new outputs
     for (File outputFile : state.getOutputs()) {
       if (state.getResource(outputFile) == null) {
         state.putResource(outputFile,
             newFileState(outputFile, outputFile.lastModified(), outputFile.length()));
+      }
+    }
+
+    // notify carried-over outputs, for test purposes
+    // XXX maybe better to expose notifyCarriedOverOutput instead
+    if (workspace instanceof Workspace2) {
+      for (File oldOutput : oldState.getOutputs()) {
+        if (state.isOutput(oldOutput) && !isProcessedResource(oldOutput)) {
+          ((Workspace2) workspace).carryOverOutput(oldOutput);
+        }
       }
     }
 
@@ -490,6 +447,8 @@ public abstract class AbstractBuildContext {
     // new messages are logged as soon as they are reported during the build
     // replay old messages so the user can still see them
     Map<Object, Collection<Message>> allMessages = new HashMap<>(state.resourceMessagesMap());
+
+
     if (!allMessages.keySet().equals(newMessages.keySet())) {
       log.info("Replaying recorded messages...");
       for (Map.Entry<Object, Collection<Message>> entry : allMessages.entrySet()) {
@@ -514,7 +473,7 @@ public abstract class AbstractBuildContext {
 
   }
 
-  protected abstract boolean shouldCarryOverOutput(File resource);
+  protected abstract void finalizeContext() throws IOException;
 
   protected void log(Object resource, int line, int column, String message,
       MessageSeverity severity, Throwable cause) {
@@ -573,8 +532,16 @@ public abstract class AbstractBuildContext {
     return processedResources.contains(resource);
   }
 
+  protected boolean isProcessed() {
+    return !processedResources.isEmpty();
+  }
+
   protected boolean isRegisteredResource(Object resource) {
     return state.isResource(resource);
+  }
+
+  protected boolean isDeletedResource(Object resource) {
+    return deletedResources.contains(resource);
   }
 
   protected <T> DefaultResourceMetadata<T> newResourceMetadata(DefaultBuildContextState state,

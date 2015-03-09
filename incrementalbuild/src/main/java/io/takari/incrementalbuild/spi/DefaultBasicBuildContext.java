@@ -4,6 +4,7 @@ import io.takari.incrementalbuild.BasicBuildContext;
 import io.takari.incrementalbuild.ResourceStatus;
 
 import java.io.File;
+import java.io.IOException;
 
 public class DefaultBasicBuildContext extends AbstractBuildContext implements BasicBuildContext {
 
@@ -12,8 +13,22 @@ public class DefaultBasicBuildContext extends AbstractBuildContext implements Ba
   }
 
   @Override
-  protected boolean shouldCarryOverOutput(File resource) {
-    return false; // delete all outputs that were not processed during this build
+  protected void finalizeContext() throws IOException {
+    if (isProcessed()) {
+      // delete all obsolete outputs
+      for (File oldOutput : oldState.getOutputs()) {
+        if (!state.isOutput(oldOutput)) {
+          deleteOutput(oldOutput);
+        }
+      }
+    } else {
+      // carry-over all metadata
+      for (Object resource : oldState.resourcesMap().keySet()) {
+        state.putResource(resource, oldState.getResource(resource));
+        state.setResourceMessages(resource, oldState.getResourceMessages(resource));
+        state.setResourceAttributes(resource, oldState.getResourceAttributes(resource));
+      }
+    }
   }
 
   @Override
