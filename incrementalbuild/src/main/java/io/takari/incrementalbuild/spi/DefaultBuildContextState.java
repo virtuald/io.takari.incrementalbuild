@@ -41,6 +41,7 @@ public class DefaultBuildContextState implements Serializable {
 
   private final Map<Object, Collection<File>> resourceOutputs;
 
+  // pure in-memory performance optimization, always reflects contents of resourceOutputs
   private final Map<File, Collection<Object>> outputInputs;
 
   private final Map<Object, Map<String, Serializable>> resourceAttributes;
@@ -329,10 +330,6 @@ public class DefaultBuildContextState implements Serializable {
 
   public Collection<Object> getOutputInputs(File outputFile) {
     return outputInputs.get(outputFile);
-  }
-
-  public Collection<Object> setOutputInputs(File outputFile, Collection<Object> resources) {
-    return outputInputs.put(outputFile, resources);
   }
 
   // outputs

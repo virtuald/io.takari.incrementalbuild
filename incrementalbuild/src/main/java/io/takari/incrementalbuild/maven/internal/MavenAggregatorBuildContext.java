@@ -1,6 +1,6 @@
 package io.takari.incrementalbuild.maven.internal;
 
-import io.takari.incrementalbuild.aggregator.AggregateMetadata;
+import io.takari.incrementalbuild.aggregator.AggregateOutput;
 import io.takari.incrementalbuild.aggregator.AggregatorBuildContext;
 import io.takari.incrementalbuild.aggregator.internal.DefaultAggregatorBuildContext;
 import io.takari.incrementalbuild.spi.BuildContextEnvironment;
@@ -36,7 +36,7 @@ public class MavenAggregatorBuildContext implements AggregatorBuildContext {
   }
 
   @Override
-  public AggregateMetadata registerOutput(File output) {
+  public AggregateOutput registerOutput(File output) {
     return provider.get().registerOutput(output);
   }
 

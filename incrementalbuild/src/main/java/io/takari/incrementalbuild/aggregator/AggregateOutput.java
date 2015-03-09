@@ -7,7 +7,7 @@ import java.util.Collection;
 /**
  * Represents aggregate output being created.
  */
-public interface AggregateMetadata {
+public interface AggregateOutput {
 
   public File getResource();
 
@@ -17,6 +17,8 @@ public interface AggregateMetadata {
    * @returns {@code true} if the new output was created, {@code false} if the output was up-to-date
    */
   public boolean createIfNecessary(AggregateCreator creator) throws IOException;
+
+  public boolean createIfNecessary(MetadataAggregateCreator creator) throws IOException;
 
   /**
    * Adds inputs to the aggregate

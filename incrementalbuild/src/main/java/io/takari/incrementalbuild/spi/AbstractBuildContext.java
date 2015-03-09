@@ -443,13 +443,8 @@ public abstract class AbstractBuildContext {
       state.putResource(resource, holder);
 
       // carry-over isOutput
-      if (oldState.isOutput(resource)) {
+      if (oldState.isOutput(resource) && state.isOutput(resource)) {
         File outputFile = (File) resource;
-        state.addOutput(outputFile);
-
-        // carry-over associated inputs
-        Collection<Object> inputs = oldState.getOutputInputs(outputFile);
-        state.setOutputInputs(outputFile, inputs);
 
         if (workspace instanceof Workspace2) {
           ((Workspace2) workspace).carryOverOutput(outputFile);

@@ -1,8 +1,9 @@
 package io.takari.incrementalbuild.aggregator.internal;
 
 import io.takari.incrementalbuild.aggregator.AggregateCreator;
-import io.takari.incrementalbuild.aggregator.AggregateMetadata;
+import io.takari.incrementalbuild.aggregator.AggregateOutput;
 import io.takari.incrementalbuild.aggregator.InputProcessor;
+import io.takari.incrementalbuild.aggregator.MetadataAggregateCreator;
 import io.takari.incrementalbuild.spi.DefaultBuildContextState;
 import io.takari.incrementalbuild.spi.DefaultResourceMetadata;
 
@@ -12,7 +13,7 @@ import java.util.Collection;
 
 public class DefaultAggregateMetadata extends DefaultResourceMetadata<File>
     implements
-      AggregateMetadata {
+      AggregateOutput {
 
   DefaultAggregateMetadata(DefaultAggregatorBuildContext context, DefaultBuildContextState state,
       File file) {
@@ -27,11 +28,16 @@ public class DefaultAggregateMetadata extends DefaultResourceMetadata<File>
   @Override
   public void addInputs(File basedir, Collection<String> includes, Collection<String> excludes,
       InputProcessor... processors) throws IOException {
-    getContext().associatedInputs(this, basedir, includes, excludes, processors);
+    getContext().associateInputs(this, basedir, includes, excludes, processors);
   }
 
   @Override
   public boolean createIfNecessary(AggregateCreator creator) throws IOException {
+    return getContext().createIfNecessary(this, creator);
+  }
+
+  @Override
+  public boolean createIfNecessary(MetadataAggregateCreator creator) throws IOException {
     return getContext().createIfNecessary(this, creator);
   }
 }
