@@ -3,7 +3,6 @@ package io.takari.incrementalbuild.maven.testing;
 import io.takari.incrementalbuild.maven.internal.FilesystemWorkspace;
 import io.takari.incrementalbuild.maven.internal.ProjectWorkspace;
 import io.takari.incrementalbuild.workspace.Workspace;
-import io.takari.incrementalbuild.workspace.Workspace2;
 
 import java.io.File;
 import java.io.IOException;
@@ -14,15 +13,15 @@ import javax.inject.Inject;
 import org.apache.maven.project.MavenProject;
 
 //this is explicitly bound in IncrementalBuildRuntime.addGuiceModules
-class TestProjectWorkspace extends ProjectWorkspace implements Workspace2 {
+class TestProjectWorkspace extends ProjectWorkspace implements Workspace {
 
   private final IncrementalBuildLog log;
 
-  private class ForwardingWorkspace2 implements Workspace2 {
+  private class ForwardingWorkspace implements Workspace {
 
     private final Workspace workspace;
 
-    public ForwardingWorkspace2(Workspace workspace) {
+    public ForwardingWorkspace(Workspace workspace) {
       this.workspace = workspace;
     }
 
@@ -69,15 +68,6 @@ class TestProjectWorkspace extends ProjectWorkspace implements Workspace2 {
     public void walk(File basedir, FileVisitor visitor) throws IOException {
       workspace.walk(basedir, visitor);
     }
-
-    @Override
-    public void carryOverOutput(File file) {
-      log.addCarryoverOutput(file);
-
-      if (workspace instanceof Workspace2) {
-        ((Workspace2) workspace).carryOverOutput(file);
-      }
-    }
   }
 
 
@@ -104,17 +94,12 @@ class TestProjectWorkspace extends ProjectWorkspace implements Workspace2 {
   }
 
   @Override
-  public void carryOverOutput(File file) {
-    log.addCarryoverOutput(file);
-  }
-
-  @Override
   public Workspace escalate() {
-    return new ForwardingWorkspace2(super.escalate());
+    return new ForwardingWorkspace(super.escalate());
   }
 
   @Override
   protected Workspace getWorkspace(File file) {
-    return new ForwardingWorkspace2(super.getWorkspace(file));
+    return new ForwardingWorkspace(super.getWorkspace(file));
   }
 }

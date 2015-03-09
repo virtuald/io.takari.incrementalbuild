@@ -19,7 +19,7 @@ public class IncrementalBuildLog {
 
   private final List<File> carriedOverOutputs = new ArrayList<File>();
 
-  private final Map<File, List<String>> inputMessages = new HashMap<File, List<String>>();
+  private final Map<File, List<String>> resourceMessages = new HashMap<File, List<String>>();
 
   void addRegisterOutput(File outputFile) {
     registeredOutputs.add(outputFile);
@@ -44,10 +44,10 @@ public class IncrementalBuildLog {
     String msg = String.format("%s %s [%d:%d] %s", severity.name(), //
         file.getName(), line, column, message);
 
-    List<String> messages = inputMessages.get(file);
+    List<String> messages = resourceMessages.get(file);
     if (messages == null) {
       messages = new ArrayList<String>();
-      inputMessages.put(file, messages);
+      resourceMessages.put(file, messages);
     }
     messages.add(msg);
   }
@@ -67,7 +67,7 @@ public class IncrementalBuildLog {
   }
 
   public Collection<String> getMessages(File inputFile) {
-    List<String> messages = inputMessages.get(inputFile);
+    List<String> messages = resourceMessages.get(inputFile);
     return messages != null ? messages : Collections.<String>emptyList();
   }
 
@@ -75,7 +75,7 @@ public class IncrementalBuildLog {
     registeredOutputs.clear();
     deletedOutputs.clear();
     carriedOverOutputs.clear();
-    inputMessages.clear();
+    resourceMessages.clear();
   }
 
 }

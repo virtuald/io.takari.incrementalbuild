@@ -14,7 +14,6 @@ import io.takari.incrementalbuild.spi.BuildContextEnvironment;
 import io.takari.incrementalbuild.spi.DefaultBuildContextState;
 import io.takari.incrementalbuild.spi.DefaultOutput;
 import io.takari.incrementalbuild.spi.DefaultResource;
-import io.takari.incrementalbuild.workspace.Workspace2;
 
 import java.io.File;
 import java.io.IOException;
@@ -217,9 +216,6 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
         // up-to-date
         state.setResourceMessages(oldOutput, oldState.getResourceMessages(oldOutput));
         state.setResourceAttributes(oldOutput, oldState.getResourceAttributes(oldOutput));
-        if (workspace instanceof Workspace2) {
-          ((Workspace2) workspace).carryOverOutput(oldOutput);
-        }
       }
     }
   }

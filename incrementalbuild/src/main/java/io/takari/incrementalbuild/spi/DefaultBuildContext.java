@@ -2,7 +2,6 @@ package io.takari.incrementalbuild.spi;
 
 import io.takari.incrementalbuild.BuildContext;
 import io.takari.incrementalbuild.ResourceStatus;
-import io.takari.incrementalbuild.workspace.Workspace2;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,10 +93,6 @@ public class DefaultBuildContext extends AbstractBuildContext implements BuildCo
       state.addOutput(output);
       state.setResourceMessages(output, oldState.getResourceMessages(output));
       state.setResourceAttributes(output, oldState.getResourceAttributes(output));
-
-      if (workspace instanceof Workspace2) {
-        ((Workspace2) workspace).carryOverOutput(output);
-      }
     }
 
     for (File output : oldState.getOutputs()) {

@@ -6,7 +6,6 @@ import io.takari.incrementalbuild.ResourceStatus;
 import io.takari.incrementalbuild.workspace.Workspace;
 import io.takari.incrementalbuild.workspace.Workspace.FileVisitor;
 import io.takari.incrementalbuild.workspace.Workspace.Mode;
-import io.takari.incrementalbuild.workspace.Workspace2;
 
 import java.io.File;
 import java.io.IOException;
@@ -425,16 +424,6 @@ public abstract class AbstractBuildContext {
       }
     }
 
-    // notify carried-over outputs, for test purposes
-    // XXX maybe better to expose notifyCarriedOverOutput instead
-    if (workspace instanceof Workspace2) {
-      for (File oldOutput : oldState.getOutputs()) {
-        if (state.isOutput(oldOutput) && !isProcessedResource(oldOutput)) {
-          ((Workspace2) workspace).carryOverOutput(oldOutput);
-        }
-      }
-    }
-
     if (stateFile != null) {
       final long start = System.currentTimeMillis();
       try (OutputStream os = workspace.newOutputStream(stateFile)) {
@@ -559,5 +548,15 @@ public abstract class AbstractBuildContext {
     }
     state.putResource(outputFile, oldState.getResource(outputFile));
     state.addOutput(outputFile);
+  }
+
+  /** @noreference this is public for for test purposes only */
+  public DefaultBuildContextState getOldState() {
+    return oldState;
+  }
+
+  /** @noreference this is public for for test purposes only */
+  public DefaultBuildContextState getState() {
+    return state;
   }
 }

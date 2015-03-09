@@ -28,17 +28,21 @@ import org.apache.maven.plugin.MojoExecutionException;
 @MojoExecutionScoped
 public class MavenBuildContextFinalizer implements WeakMojoExecutionListener, BuildContextFinalizer {
 
-  private final MessageSink messageSink;
+  @Inject
+  @Nullable
+  private MessageSink messageSink;
 
   private final List<AbstractBuildContext> contexts = new ArrayList<>();
 
   @Inject
-  public MavenBuildContextFinalizer(@Nullable MessageSink messageSink) {
-    this.messageSink = messageSink;
-  }
+  public MavenBuildContextFinalizer() {}
 
   public void registerContext(AbstractBuildContext context) {
     contexts.add(context);
+  }
+
+  protected List<AbstractBuildContext> getRegisteredContexts() {
+    return contexts;
   }
 
   @Override

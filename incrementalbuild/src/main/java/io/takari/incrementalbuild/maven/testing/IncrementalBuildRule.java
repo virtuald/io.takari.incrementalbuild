@@ -1,6 +1,8 @@
 package io.takari.incrementalbuild.maven.testing;
 
+import io.takari.incrementalbuild.maven.internal.MavenBuildContextFinalizer;
 import io.takari.incrementalbuild.maven.internal.ProjectWorkspace;
+import io.takari.incrementalbuild.spi.BuildContextFinalizer;
 import io.takari.incrementalbuild.workspace.MessageSink;
 import io.takari.maven.testing.TestMavenRuntime;
 
@@ -38,6 +40,14 @@ public class IncrementalBuildRule extends TestMavenRuntime {
         // message sink
         bind(TestMessageSink.class).in(MojoExecutionScoped.class);
         bind(MessageSink.class).to(TestMessageSink.class).in(MojoExecutionScoped.class);
+
+        // context finalizer
+        bind(TestBuildContextFinalizer.class).in(MojoExecutionScoped.class);
+        bind(BuildContextFinalizer.class).to(TestBuildContextFinalizer.class).in(
+            MojoExecutionScoped.class);
+        bind(MavenBuildContextFinalizer.class).to(TestBuildContextFinalizer.class).in(
+            MojoExecutionScoped.class);
+
       }
     });
   }
