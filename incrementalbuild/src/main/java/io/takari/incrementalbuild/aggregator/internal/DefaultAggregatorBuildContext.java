@@ -11,9 +11,11 @@ import io.takari.incrementalbuild.aggregator.InputProcessor;
 import io.takari.incrementalbuild.aggregator.MetadataAggregateCreator;
 import io.takari.incrementalbuild.spi.AbstractBuildContext;
 import io.takari.incrementalbuild.spi.BuildContextEnvironment;
+import io.takari.incrementalbuild.spi.BuildContextFinalizer;
 import io.takari.incrementalbuild.spi.DefaultBuildContextState;
 import io.takari.incrementalbuild.spi.DefaultOutput;
 import io.takari.incrementalbuild.spi.DefaultResource;
+import io.takari.incrementalbuild.workspace.Workspace;
 
 import java.io.File;
 import java.io.IOException;
@@ -37,6 +39,11 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
 
   public DefaultAggregatorBuildContext(BuildContextEnvironment configuration) {
     super(configuration);
+  }
+
+  public DefaultAggregatorBuildContext(Workspace workspace, File stateFile,
+      Map<String, Serializable> configuration, BuildContextFinalizer finalizer) {
+    super(workspace, stateFile, configuration, finalizer);
   }
 
   @Override
@@ -115,9 +122,8 @@ public class DefaultAggregatorBuildContext extends AbstractBuildContext
       if (inputFiles != null) {
         for (Object inputFile : inputFiles) {
           if (!isProcessedResource(inputFile)) {
-            processResource(inputFile);
+            markProcessedResource(inputFile);
           }
-          state.putResourceOutput(inputFile, outputFile);
           inputs.add(newAggregateInput((File) inputFile, true /* processed */));
         }
       }

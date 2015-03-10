@@ -319,13 +319,17 @@ public abstract class AbstractBuildContext {
     return new DefaultResource<T>(this, state, resource);
   }
 
-  protected <T> void processResource(final T resource) {
+  protected void processResource(final Object resource) {
     processedResources.add(resource);
 
     // reset all metadata associated with the resource during this build
     state.removeResourceAttributes(resource);
     state.removeResourceMessages(resource);
     state.removeResourceOutputs(resource);
+  }
+
+  protected void markProcessedResource(Object resource) {
+    processedResources.add(resource);
   }
 
   // simple key/value pairs

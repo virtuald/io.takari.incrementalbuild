@@ -1,8 +1,8 @@
 package io.takari.incrementalbuild.spi;
 
-import io.takari.incrementalbuild.BuildContext.Input;
 import io.takari.incrementalbuild.MessageSeverity;
 import io.takari.incrementalbuild.Output;
+import io.takari.incrementalbuild.Resource;
 import io.takari.incrementalbuild.aggregator.AggregateCreator;
 import io.takari.incrementalbuild.aggregator.AggregateInput;
 import io.takari.incrementalbuild.aggregator.InputProcessor;
@@ -13,7 +13,9 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,12 +54,11 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
 
     // initial build
     FileIndexer indexer = new FileIndexer();
-    DefaultBuildContext<?> ctx = newBuildContext();
-    DefaultAggregatorBuildContext actx = new DefaultAggregatorBuildContext(ctx);
+    DefaultAggregatorBuildContext actx = newContext();
     DefaultAggregateMetadata output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(1, indexer.outputs.size());
     Assert.assertEquals(1, indexer.inputs.size());
@@ -65,23 +66,22 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
 
     // no-change rebuild
     indexer = new FileIndexer();
-    ctx = newBuildContext();
-    actx = new DefaultAggregatorBuildContext(ctx);
+    actx = newContext();
     output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(0, indexer.outputs.size());
 
     // no-change rebuild
     indexer = new FileIndexer();
-    ctx = newBuildContext();
-    actx = new DefaultAggregatorBuildContext(ctx);
+    actx = newContext();
+
     output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(0, indexer.outputs.size());
 
@@ -89,37 +89,40 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
     File b = new File(basedir, "b").getCanonicalFile();
     b.createNewFile();
     indexer = new FileIndexer();
-    ctx = newBuildContext();
-    actx = new DefaultAggregatorBuildContext(ctx);
+    actx = newContext();
     output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(1, indexer.outputs.size());
 
     // removed output
     a.delete();
     indexer = new FileIndexer();
-    ctx = newBuildContext();
-    actx = new DefaultAggregatorBuildContext(ctx);
+    actx = newContext();
     output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(1, indexer.outputs.size());
 
     // no-change rebuild
     indexer = new FileIndexer();
-    ctx = newBuildContext();
-    actx = new DefaultAggregatorBuildContext(ctx);
+    actx = newContext();
     output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(0, indexer.outputs.size());
+  }
+
+  private DefaultAggregatorBuildContext newContext() {
+    File stateFile = new File(temp.getRoot(), "buildstate.ctx");
+    return new DefaultAggregatorBuildContext(new FilesystemWorkspace(), stateFile,
+        new HashMap<String, Serializable>(), null);
   }
 
   @Test
@@ -128,12 +131,11 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
     File basedir = temp.newFolder();
 
     FileIndexer indexer = new FileIndexer();
-    DefaultBuildContext<?> ctx = newBuildContext();
-    DefaultAggregatorBuildContext actx = new DefaultAggregatorBuildContext(ctx);
+    DefaultAggregatorBuildContext actx = newContext();
     DefaultAggregateMetadata output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null);
     output.createIfNecessary(indexer);
-    ctx.commit();
+    actx.commit(null);
     Assert.assertTrue(outputFile.canRead());
     Assert.assertEquals(1, indexer.outputs.size());
   }
@@ -147,30 +149,30 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
     a.createNewFile();
 
     // initial build
-    DefaultBuildContext<?> ctx = newBuildContext();
-    DefaultAggregatorBuildContext actx = new DefaultAggregatorBuildContext(ctx);
+    DefaultAggregatorBuildContext actx = newContext();
     DefaultAggregateMetadata output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null, new InputProcessor() {
       @Override
-      public void process(Input<File> input) throws IOException {
+      public Map<String, Serializable> process(Resource<File> input) throws IOException {
         input.setAttribute("key", "value");
         input.addMessage(0, 0, "message", MessageSeverity.INFO, null);
+        return null;
       }
     });
     output.createIfNecessary(new FileIndexer());
-    ctx.commit();
+    actx.commit(null);
 
     // new input
     File b = new File(basedir, "b").getCanonicalFile();
     b.createNewFile();
-    ctx = newBuildContext();
-    actx = new DefaultAggregatorBuildContext(ctx);
+    actx = newContext();
     output = actx.registerOutput(outputFile);
     output.addInputs(basedir, null, null, new InputProcessor() {
       @Override
-      public void process(Input<File> input) throws IOException {
+      public Map<String, Serializable> process(Resource<File> input) throws IOException {
         input.setAttribute("key", "value");
         input.addMessage(0, 0, "message", MessageSeverity.INFO, null);
+        return null;
       }
     });
     output.createIfNecessary(new AggregateCreator() {
@@ -181,6 +183,8 @@ public class DefaultAggregatorBuildContextTest extends AbstractBuildContextTest 
         }
       }
     });
-    ctx.commit();
+    actx.commit(null);
   }
+
+
 }
