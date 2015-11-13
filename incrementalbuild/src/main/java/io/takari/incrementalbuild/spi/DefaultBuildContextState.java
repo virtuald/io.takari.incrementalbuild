@@ -27,8 +27,8 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultBuildContextState implements Serializable {
 
-  private static final transient Logger log = LoggerFactory
-      .getLogger(DefaultBuildContextState.class);
+  private static final transient Logger log =
+      LoggerFactory.getLogger(DefaultBuildContextState.class);
 
   private static final long serialVersionUID = 6195150574931820441L;
 
@@ -40,6 +40,8 @@ public class DefaultBuildContextState implements Serializable {
 
   private final Map<Object, Collection<File>> resourceOutputs;
 
+  private final Map<Object, Collection<Object>> resourceIndirectInputs;
+
   // pure in-memory performance optimization, always reflects contents of resourceOutputs
   private final Map<File, Collection<Object>> outputInputs;
 
@@ -48,43 +50,48 @@ public class DefaultBuildContextState implements Serializable {
   private final Map<Object, Collection<Message>> resourceMessages;
 
   private DefaultBuildContextState(Map<String, Serializable> configuration //
-      , Map<Object, ResourceHolder<?>> inputs //
-      , Set<File> outputs //
-      , Map<Object, Collection<File>> resourceOutputs //
-      , Map<File, Collection<Object>> outputInputs //
-      , Map<Object, Map<String, Serializable>> resourceAttributes //
-      , Map<Object, Collection<Message>> resourceMessages) {
+  , Map<Object, ResourceHolder<?>> inputs //
+  , Set<File> outputs //
+  , Map<Object, Collection<File>> resourceOutputs //
+  , Map<Object, Collection<Object>> resourceIndirectInputs //
+  , Map<File, Collection<Object>> outputInputs //
+  , Map<Object, Map<String, Serializable>> resourceAttributes //
+  , Map<Object, Collection<Message>> resourceMessages) {
     this.configuration = configuration;
     this.resources = inputs;
     this.outputs = outputs;
     this.resourceOutputs = resourceOutputs;
+    this.resourceIndirectInputs = resourceIndirectInputs;
     this.outputInputs = outputInputs;
     this.resourceAttributes = resourceAttributes;
     this.resourceMessages = resourceMessages;
   }
 
-  public static DefaultBuildContextState withConfiguration(Map<String, Serializable> configuration) {
+  public static DefaultBuildContextState withConfiguration(
+      Map<String, Serializable> configuration) {
     HashMap<String, Serializable> copy = new HashMap<String, Serializable>(configuration);
     // configuration marker used to distinguish between empty and new state
     copy.put("incremental", Boolean.TRUE);
     return new DefaultBuildContextState(Collections.<String, Serializable>unmodifiableMap(copy) // configuration
-        , new HashMap<Object, ResourceHolder<?>>() // inputs
-        , new HashSet<File>() // outputs
-        , new HashMap<Object, Collection<File>>() // inputOutputs
-        , new HashMap<File, Collection<Object>>() // outputInputs
-        , new HashMap<Object, Map<String, Serializable>>() // resourceAttributes
-        , new HashMap<Object, Collection<Message>>() // messages
+    , new HashMap<Object, ResourceHolder<?>>() // inputs
+    , new HashSet<File>() // outputs
+    , new HashMap<Object, Collection<File>>() // resourceOutputs
+    , new HashMap<Object, Collection<Object>>() // resourceIndirectInputs
+    , new HashMap<File, Collection<Object>>() // outputInputs
+    , new HashMap<Object, Map<String, Serializable>>() // resourceAttributes
+    , new HashMap<Object, Collection<Message>>() // messages
     );
   }
 
   public static DefaultBuildContextState emptyState() {
     return new DefaultBuildContextState(Collections.<String, Serializable>emptyMap() // configuration
-        , Collections.<Object, ResourceHolder<?>>emptyMap() // inputs //
-        , Collections.<File>emptySet() // outputs //
-        , Collections.<Object, Collection<File>>emptyMap() // inputOutputs //
-        , Collections.<File, Collection<Object>>emptyMap() // outputInputs //
-        , Collections.<Object, Map<String, Serializable>>emptyMap() // resourceAttributes //
-        , Collections.<Object, Collection<Message>>emptyMap() // messages
+    , Collections.<Object, ResourceHolder<?>>emptyMap() // inputs //
+    , Collections.<File>emptySet() // outputs //
+    , Collections.<Object, Collection<File>>emptyMap() // resourceOutputs //
+    , Collections.<Object, Collection<Object>>emptyMap() // resourceIndirectInputs //
+    , Collections.<File, Collection<Object>>emptyMap() // outputInputs //
+    , Collections.<Object, Map<String, Serializable>>emptyMap() // resourceAttributes //
+    , Collections.<Object, Collection<Message>>emptyMap() // messages
     );
   }
 
@@ -110,6 +117,7 @@ public class DefaultBuildContextState implements Serializable {
       writeMap(oos, this.resources);
 
       writeMultimap(oos, resourceOutputs);
+      writeMultimap(oos, resourceIndirectInputs);
       writeDoublemap(oos, resourceAttributes);
       writeMultimap(oos, resourceMessages);
 
@@ -169,8 +177,8 @@ public class DefaultBuildContextState implements Serializable {
       ObjectInputStream is =
           new ObjectInputStream(new BufferedInputStream(new FileInputStream(stateFile))) {
             @Override
-            protected Class<?> resolveClass(ObjectStreamClass desc) throws IOException,
-                ClassNotFoundException {
+            protected Class<?> resolveClass(ObjectStreamClass desc)
+                throws IOException, ClassNotFoundException {
               // TODO does it matter if TCCL or super is called first?
               try {
                 ClassLoader tccl = Thread.currentThread().getContextClassLoader();
@@ -189,6 +197,7 @@ public class DefaultBuildContextState implements Serializable {
         Map<Object, ResourceHolder<?>> resources = readMap(is);
 
         Map<Object, Collection<File>> resourceOutputs = readMultimap(is);
+        Map<Object, Collection<Object>> resourceIndirectInputs = readMultimap(is);
         Map<File, Collection<Object>> outputInputs = invertMultimap(resourceOutputs);
         Map<Object, Map<String, Serializable>> resourceAttributes = readDoublemap(is);
         Map<Object, Collection<Message>> messages = readMultimap(is);
@@ -197,10 +206,11 @@ public class DefaultBuildContextState implements Serializable {
             , resources //
             , outputs //
             , resourceOutputs //
+            , resourceIndirectInputs //
             , outputInputs //
             , resourceAttributes //
             , messages //
-            );
+        );
         log.debug("Loaded incremental build state {} ({} ms)", stateFile,
             System.currentTimeMillis() - start);
         return state;
@@ -224,8 +234,8 @@ public class DefaultBuildContextState implements Serializable {
   }
 
   @SuppressWarnings("unchecked")
-  private static <K, V> Map<K, V> readMap(ObjectInputStream ois) throws IOException,
-      ClassNotFoundException {
+  private static <K, V> Map<K, V> readMap(ObjectInputStream ois)
+      throws IOException, ClassNotFoundException {
     Map<K, V> map = new HashMap<K, V>();
     int size = ois.readInt();
     for (int i = 0; i < size; i++) {
@@ -250,8 +260,8 @@ public class DefaultBuildContextState implements Serializable {
   }
 
   @SuppressWarnings("unchecked")
-  private static <V> Collection<V> readCollection(ObjectInputStream ois) throws IOException,
-      ClassNotFoundException {
+  private static <V> Collection<V> readCollection(ObjectInputStream ois)
+      throws IOException, ClassNotFoundException {
     int size = ois.readInt();
     if (size == 0) {
       return null;
@@ -263,8 +273,8 @@ public class DefaultBuildContextState implements Serializable {
     return Collections.unmodifiableCollection(collection);
   }
 
-  private static <V> Set<V> readSet(ObjectInputStream ois) throws IOException,
-      ClassNotFoundException {
+  private static <V> Set<V> readSet(ObjectInputStream ois)
+      throws IOException, ClassNotFoundException {
     Collection<V> collection = readCollection(ois);
     return collection != null
         ? Collections.<V>unmodifiableSet(new HashSet<V>(collection))
@@ -387,6 +397,9 @@ public class DefaultBuildContextState implements Serializable {
       }
     }
   }
+
+  // resourceIndirectInputs
+
 
   // resourceAttributes
 
