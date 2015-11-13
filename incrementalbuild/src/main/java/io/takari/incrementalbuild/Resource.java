@@ -10,4 +10,6 @@ public interface Resource<T> extends ResourceMetadata<T> {
   public Output<File> associateOutput(Output<File> output);
 
   public Output<File> associateOutput(File outputFile);
+
+  public void associateIndirectInput(File inputFile);
 }

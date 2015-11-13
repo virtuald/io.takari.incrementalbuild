@@ -662,4 +662,14 @@ public abstract class AbstractBuildContext {
     return getResourceAttribute(getState(resource), resource, key, clazz);
   }
 
+  protected <T> void associateIndirect(DefaultResource<T> output, File inputFile) {
+    if (output.context != this) {
+      throw new IllegalArgumentException();
+    }
+
+    // assertAssociation(resource, output);
+
+    // state.putResourceIndirect(inputFile, output.getResource());
+  }
+
 }
